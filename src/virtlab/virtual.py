@@ -123,7 +123,8 @@ class VMCatalog(object):
 
 
 class VMLabException(Exception):
-    def __init__(self, id=None, msg=None):
+    def __init__(self, vm_id=None, msg=None):
         super(VMLabException, self).__init__()
-        self.id = id
+        self.vm_id = vm_id
+        self.msg = msg
 

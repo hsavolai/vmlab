@@ -4,7 +4,7 @@ Created on May 20, 2012
 @author: hsavolai
 '''
 import unittest
-from virtlab.virtual import VMList
+from virtlab.virtual import VMCatalog
 
 
 class Test(unittest.TestCase):
@@ -16,13 +16,7 @@ class Test(unittest.TestCase):
         pass
 
     def testVmListIsEmpty(self):
-        self.assertEqual(VMList().vms.__len__(), 0)
-
-    def testVmPopulated(self):
-        vmList = VMList()
-        vmList.loadvms()
-        self.assertNotEqual(vmList.vms.__len__(), 0, 0)
-        vmList.printlist()
+        self.assertEqual(VMCatalog().vms.__len__(), 0)
 
 if __name__ == "__main__":
     #import sys;sys.argv = ['', 'Test.testName']

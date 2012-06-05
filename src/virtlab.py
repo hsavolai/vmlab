@@ -43,7 +43,7 @@ class VirtLabControl(BaseController):
             del self.view.active_vms[vmlist_widget_row.name]
             vmlist_widget_row.join = False
 
-        #self.view.populate_vmlist(True)
+        self.view.populate_vmlist(True)
 
     # pylint: disable=W0613
     def on_refreshbutton__clicked(self, *args):
@@ -81,7 +81,7 @@ class VirtlabView(BaseView):
         try:
             self.populate_vmlist()
         except VMLabException as exception:
-            if exception.id == "LIBVIRT-001":
+            if exception.vm_id == "LIBVIRT-001":
                 error("Initialization error",
                       "No connection to Libvirtd.\n Exiting.")
                 exit(1)
