@@ -4,9 +4,10 @@
   <!-- interface-naming-policy toplevel-contextual -->
   <object class="GtkWindow" id="virtlab">
     <property name="title" translatable="yes">VM Lab Manager</property>
+    <property name="resizable">False</property>
     <property name="window_position">center</property>
-    <property name="default_width">600</property>
-    <property name="default_height">400</property>
+    <property name="default_width">1600</property>
+    <property name="default_height">500</property>
     <child>
       <object class="GtkVBox" id="vbox4">
         <property name="visible">True</property>
@@ -76,6 +77,94 @@
                     <property name="y">109</property>
                   </packing>
                 </child>
+                <child>
+                  <object class="GtkEntry" id="entry2">
+                    <property name="width_request">215</property>
+                    <property name="height_request">25</property>
+                    <property name="visible">True</property>
+                    <property name="can_focus">True</property>
+                    <property name="editable">False</property>
+                    <property name="invisible_char">&#x25CF;</property>
+                  </object>
+                  <packing>
+                    <property name="x">21</property>
+                    <property name="y">289</property>
+                  </packing>
+                </child>
+                <child>
+                  <object class="GtkLabel" id="label1">
+                    <property name="width_request">141</property>
+                    <property name="height_request">29</property>
+                    <property name="visible">True</property>
+                    <property name="label" translatable="yes">Starting order</property>
+                  </object>
+                  <packing>
+                    <property name="y">320</property>
+                  </packing>
+                </child>
+                <child>
+                  <object class="GtkLabel" id="label2">
+                    <property name="width_request">96</property>
+                    <property name="height_request">22</property>
+                    <property name="visible">True</property>
+                    <property name="label" translatable="yes">Seleted VM</property>
+                  </object>
+                  <packing>
+                    <property name="x">12</property>
+                    <property name="y">264</property>
+                  </packing>
+                </child>
+                <child>
+                  <object class="GtkHSeparator" id="hseparator1">
+                    <property name="width_request">308</property>
+                    <property name="height_request">30</property>
+                    <property name="visible">True</property>
+                  </object>
+                  <packing>
+                    <property name="x">12</property>
+                    <property name="y">237</property>
+                  </packing>
+                </child>
+                <child>
+                  <object class="GtkComboBox" id="combobox1">
+                    <property name="width_request">100</property>
+                    <property name="height_request">25</property>
+                    <property name="visible">True</property>
+                    <property name="model">liststore1</property>
+                  </object>
+                  <packing>
+                    <property name="x">136</property>
+                    <property name="y">320</property>
+                  </packing>
+                </child>
+                <child>
+                  <object class="GtkButton" id="button1">
+                    <property name="label" translatable="yes">OK</property>
+                    <property name="width_request">94</property>
+                    <property name="height_request">29</property>
+                    <property name="visible">True</property>
+                    <property name="can_focus">True</property>
+                    <property name="receives_default">True</property>
+                  </object>
+                  <packing>
+                    <property name="x">23</property>
+                    <property name="y">358</property>
+                  </packing>
+                </child>
+                <child>
+                  <object class="GtkButton" id="button2">
+                    <property name="label" translatable="yes">Cancel</property>
+                    <property name="width_request">99</property>
+                    <property name="height_request">30</property>
+                    <property name="visible">True</property>
+                    <property name="can_focus">True</property>
+                    <property name="receives_default">True</property>
+                  </object>
+                  <packing>
+                    <property name="x">137</property>
+                    <property name="y">357</property>
+                  </packing>
+                </child>
               </object>
               <packing>
                 <property name="position">0</property>
@@ -102,4 +191,5 @@
       </object>
     </child>
   </object>
+  <object class="GtkListStore" id="liststore1"/>
 </interface>
