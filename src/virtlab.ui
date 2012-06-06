@@ -213,7 +213,7 @@
                   </packing>
                 </child>
                 <child>
-                  <object class="GtkEntry" id="entry2">
+                  <object class="GtkEntry" id="vmname">
                     <property name="width_request">215</property>
                     <property name="height_request">25</property>
                     <property name="visible">True</property>
@@ -331,4 +331,5 @@
     <property name="visible">True</property>
     <property name="stock">gtk-open</property>
   </object>
+  <object class="GtkTextBuffer" id="vmnamebuffer"/>
 </interface>

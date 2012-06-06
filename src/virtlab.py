@@ -43,6 +43,8 @@ class VirtLabControl(BaseController):
             del self.view.active_vms[vmlist_widget_row.name]
             vmlist_widget_row.join = False
 
+        self.view.vmname.set_text(vmlist_widget_row.name)
+
     # pylint: disable=W0613
     def on_refreshbutton__clicked(self, *args):
         '''
