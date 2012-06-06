@@ -84,7 +84,7 @@ class VirtlabView(BaseView):
                       "No connection to Libvirtd.\n Exiting.")
                 exit(1)
 
-        self.virtlab.set_size_request(600, 430)
+        self.virtlab.set_size_request(600, 460)
 
 
     def populate_vmlist(self, force_reload=False):
