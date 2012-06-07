@@ -24,6 +24,7 @@ Created on May 20, 2012
 '''
 import libvirt
 from copy import copy
+import virtlab.constant as c
 
 
 class VMState(object):
@@ -42,13 +43,13 @@ class VMState(object):
 class VMStateRunning(VMState):
 
     def __init__(self):
-        super(VMStateRunning, self).__init__(1, "RUNNING")
+        super(VMStateRunning, self).__init__(1, c.CONST_RUNNING)
 
 
 class VMStateStopped(VMState):
 
     def __init__(self):
-        super(VMStateStopped, self).__init__(2, "STOPPED")
+        super(VMStateStopped, self).__init__(2, c.CONST_STOPPED)
 
 
 class VMIstance(object):
@@ -79,9 +80,22 @@ class VMIstance(object):
     state = property(get_state, set_state, del_state, "Virtual machine state")
 
 
-class VMCatalog(object):
+class LibVirtDao():
 
     hook = "qemu:///system"
+
+    def __init__(self):
+        pass
+
+    @staticmethod
+    def get_libvirt(hook=None):
+        if hook is None:
+            return libvirt.open(LibVirtDao.hook)
+        else:
+            return libvirt.open(hook)
+
+
+class VMCatalog(object):
 
     def __init__(self):
         self.__vms = {}
@@ -93,9 +107,9 @@ class VMCatalog(object):
     @classmethod
     def get_conn(cls):
         try:
-            return libvirt.open(cls.hook)
+            return LibVirtDao.get_libvirt()
         except Exception:
-            raise VMLabException("LIBVIRT-001", "Failed to connect libvirtd")
+            raise VMLabException(c.EXCEPTION_LIBVIRT_001, c.EXCEPTION_LIBVIRT_001_DESC)
 
     def __stopped(self):
         conn = self.get_conn()
@@ -122,11 +136,12 @@ class VMCatalog(object):
 
         for vm_instance_name in self.__vms:
             vm_instance = self.__vms[vm_instance_name]
-            if not self.__vms_history.has_key(vm_instance_name):
+            if not vm_instance_name in self.__vms_history:
                 changed = True
                 break
             vm_historical_instance = self.__vms_history[vm_instance_name]
-            if vm_instance.state.get_state_id() != vm_historical_instance.state.get_state_id():
+            if vm_instance.state.get_state_id() != \
+                            vm_historical_instance.state.get_state_id():
                 changed = True
                 break
 
@@ -135,15 +150,12 @@ class VMCatalog(object):
             return True
         else:
             return False
-    
-
 
     vms = property(get_vms, None, None, None)
 
 
 class VMLabException(Exception):
-    def __init__(self, vm_id=None, msg=None):
+    def __init__(self, vme_id=None, msg=None):
         super(VMLabException, self).__init__()
-        self.vm_id = vm_id
+        self.vme_id = vme_id
         self.msg = msg
-
