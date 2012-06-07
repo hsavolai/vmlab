@@ -22,7 +22,6 @@ Copyright 2012 Harri Savolainen
 
 Virtual Lab Manager Main
 '''
-from gtk import ListStore
 from kiwi.controllers import BaseController
 from kiwi.ui.views import BaseView
 from kiwi.python import Settable
@@ -33,6 +32,7 @@ from virtlab.virtual import VMCatalog, VMLabException
 import gtk
 import gobject
 import sys
+import virtlab.constant as c
 
 
 class VirtLabControl(BaseController):
@@ -101,13 +101,12 @@ class VirtlabView(BaseView):
         try:
             self.populate_vmlist()
         except VMLabException as exception:
-            if exception.vm_id == "LIBVIRT-001":
+            if exception.vme_id is c.EXCEPTION_LIBVIRT_001:
                 error("Initialization error",
                       "No connection to Libvirtd.\n Exiting.")
                 exit(1)
 
         self.virtlab.set_size_request(600, 460)
-
 
     def populate_vmlist(self, force_reload=False):
         '''
