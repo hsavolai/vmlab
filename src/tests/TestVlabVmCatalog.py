@@ -124,6 +124,59 @@ class Test(unittest.TestCase):
         self.assertEqual(c.CONST_RUNNING, vms[0].get_state().get_state_str(), \
                 "VM should be running / " + vms[0].get_state().get_state_str())
 
+    def testGetMixedVmInstancesHistoryNoChange(self):
+        self.setUpMVMock()
+
+        run_vm_name = "TEST-VM-RUN"
+        stop_vm_name = "TEST-VM-STOP"
+        self.virConnectMock.listDomainsID().AndReturn([1])
+        self.virDomainMock.name().AndReturn(run_vm_name)
+        self.virConnectMock.lookupByID(1).AndReturn(self.virDomainMock)
+        self.virConnectMock.listDefinedDomains().AndReturn([stop_vm_name])
+        mox.Replay(self.virConnectMock, self.virDomainMock)
+
+        vm_catalog = VMCatalog()
+        history_changed = vm_catalog.refesh()
+        self.assertEqual(True, history_changed, "History should be changed")
+
+        mox.Reset(self.virConnectMock, self.virDomainMock)
+        self.virConnectMock.listDomainsID().AndReturn([1])
+        self.virDomainMock.name().AndReturn(run_vm_name)
+        self.virConnectMock.lookupByID(1).AndReturn(self.virDomainMock)
+        self.virConnectMock.listDefinedDomains().AndReturn([stop_vm_name])
+        mox.Replay(self.virConnectMock, self.virDomainMock)
+
+        history_changed = vm_catalog.refesh()
+
+        self.assertEqual(False, history_changed, \
+                         "History should not be changed")
+
+    def testGetMixedVmInstancesHistoryChange(self):
+        self.setUpMVMock()
+
+        run_vm_name = "TEST-VM-RUN"
+        stop_vm_name = "TEST-VM-STOP"
+        self.virConnectMock.listDomainsID().AndReturn([1])
+        self.virDomainMock.name().AndReturn(run_vm_name)
+        self.virConnectMock.lookupByID(1).AndReturn(self.virDomainMock)
+        self.virConnectMock.listDefinedDomains().AndReturn([stop_vm_name])
+        mox.Replay(self.virConnectMock, self.virDomainMock)
+
+        vm_catalog = VMCatalog()
+        history_changed = vm_catalog.refesh()
+        self.assertEqual(True, history_changed, "History should be changed")
+
+        mox.Reset(self.virConnectMock, self.virDomainMock)
+        self.virConnectMock.listDomainsID().AndReturn([])
+        self.virConnectMock.listDefinedDomains().AndReturn([stop_vm_name, \
+                                                             run_vm_name])
+        mox.Replay(self.virConnectMock)
+
+        history_changed = vm_catalog.refesh()
+
+        self.assertEqual(True, history_changed, \
+                         "History should be changed")
+
 if __name__ == "__main__":
     #import sys;sys.argv = ['', 'Test.testName']
     unittest.main()
