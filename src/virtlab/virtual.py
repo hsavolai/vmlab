@@ -109,7 +109,8 @@ class VMCatalog(object):
         try:
             return LibVirtDao.get_libvirt()
         except Exception:
-            raise VMLabException(c.EXCEPTION_LIBVIRT_001, c.EXCEPTION_LIBVIRT_001_DESC)
+            raise VMLabException(c.EXCEPTION_LIBVIRT_001, \
+                                 c.EXCEPTION_LIBVIRT_001_DESC)
 
     def __stopped(self):
         conn = self.get_conn()
