@@ -43,20 +43,33 @@ class VMState(object):
 class VMStateRunning(VMState):
 
     def __init__(self):
-        super(VMStateRunning, self).__init__(1, c.CONST_RUNNING)
+        super(VMStateRunning, self).__init__(1, c.STATE_RUNNING)
 
 
 class VMStateStopped(VMState):
 
     def __init__(self):
-        super(VMStateStopped, self).__init__(2, c.CONST_STOPPED)
+        super(VMStateStopped, self).__init__(2, c.STATE_STOPPED)
+
+
+class VMStateGone(VMState):
+
+    def __init__(self):
+        super(VMStateGone, self).__init__(3, c.STATE_GONE)
 
 
 class VMIstance(object):
 
-    def __init__(self, name, state):
+    def __init__(self, name, state, order=None):
         self.__name = name
         self.__state = state
+        self.__order = order
+
+    def set_order(self, order):
+        self.__order = order
+
+    def get_order(self):
+        return self.__order
 
     def get_name(self):
         return self.__name
@@ -112,6 +125,12 @@ class VMCatalog(object):
             raise VMLabException(c.EXCEPTION_LIBVIRT_001, \
                                  c.EXCEPTION_LIBVIRT_001_DESC)
 
+    def attach_order(self, name, order):
+        if name in self.__vms:
+            self.__vms[name].set_order(order)
+        else:
+            self.__vms[name] = VMIstance(name, VMStateGone(), order)
+
     def __stopped(self):
         conn = self.get_conn()
         for name in conn.listDefinedDomains():
@@ -123,6 +142,12 @@ class VMCatalog(object):
             domain = conn.lookupByID(vm_id)
             name = domain.name()
             self.__vms[name] = VMIstance(name, VMStateRunning())
+
+    def get_vm(self, name):
+        if name in self.__vms:
+            return self.__vms[name]
+        else:
+            return None
 
     def get_vms(self):
         return self.__vms.values()
