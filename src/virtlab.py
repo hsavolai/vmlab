@@ -56,11 +56,11 @@ class VirtLabControl(BaseController):
         if object is None:
             return None
         if not self.view.is_active_vm(vmlist_widget_row.name):
-            self.view.active_vms[vmlist_widget_row.name] = \
+            self.view.vms_ordering[vmlist_widget_row.name] = \
                                         vmlist_widget_row.name
             vmlist_widget_row.join = True
         else:
-            del self.view.active_vms[vmlist_widget_row.name]
+            del self.view.vms_ordering[vmlist_widget_row.name]
             vmlist_widget_row.join = False
 
         self.view.vmname.set_text(vmlist_widget_row.name)
@@ -90,14 +90,14 @@ class VirtlabView(BaseView):
         tableColumns = [
                     Column("name", title='VM Name', width=130, sorted=True),
                     Column("state", title='State', width=70),
-                    Column("join", data_type=bool, title='VM State', width=90)
+                    Column("join", title='VM State', width=90)
                     ]
 
         self.vmlist_widget = ObjectList(tableColumns)
         self.vmlist_widget.set_selection_mode(gtk.SELECTION_SINGLE)
         self.hbox4.pack_start(self.vmlist_widget)
         self.vmlist_widget.show()
-        self.active_vms = {}
+        self.vms_ordering = {}
         try:
             self.populate_vmlist()
         except VMLabException as exception:
@@ -121,11 +121,10 @@ class VirtlabView(BaseView):
                                 join=self.is_active_vm(vmachine.get_name())))
 
     def is_active_vm(self, vm_name):
-        if vm_name in self.active_vms:
+        if vm_name in self.vms_ordering:
             return True
         else:
             return False
-
 
 # pylint: disable=W0613
 def main(argv=None):
