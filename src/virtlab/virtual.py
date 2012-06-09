@@ -159,9 +159,15 @@ class VMCatalog(object):
         self.__stopped()
 
         changed = False
+        for historical_vm_instance_name in self.__vms_history:
+            if not historical_vm_instance_name in self.__vms:
+                changed = True
 
         for vm_instance_name in self.__vms:
             vm_instance = self.__vms[vm_instance_name]
+            if not vm_instance_name in self.__vms_history:
+                changed = True
+                break
             if not vm_instance_name in self.__vms_history:
                 changed = True
                 break

@@ -182,15 +182,15 @@ class Test(unittest.TestCase):
 
         #Setup
         mox.Reset(self.virConnectMock, self.virDomainMock)
-        self.addRunningVMs(run_vm_name, 1)
-        self.addStoppedVMs(stop_vm_name, 0)
+        self.addRunningVMs(run_vm_name, 0)
+        self.addStoppedVMs(stop_vm_name, 2)
         mox.Replay(self.virConnectMock, self.virDomainMock)
 
         #Test
         history_changed = vm_catalog.refesh()
 
         #Assert
-        self.assertEqual(False, history_changed)
+        self.assertEqual(True, history_changed)
 
     def testGetMixedVmInstancesOrderAttached(self):
         self.setUpMVMock()
