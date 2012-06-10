@@ -53,24 +53,21 @@ class VirtLabControl(BaseController):
     # pylint: disable=W0613
     def on_vmlist_widget__selection_changed(self, vmlist_widget_allrows,
                                             vmlist_widget_row):
-        if object is None:
-            return None
-        if not self.view.is_active_vm(vmlist_widget_row.name):
-            self.view.vms_ordering[vmlist_widget_row.name] = \
-                                        vmlist_widget_row.name
-            vmlist_widget_row.join = True
-        else:
-            del self.view.vms_ordering[vmlist_widget_row.name]
-            vmlist_widget_row.join = False
-
         self.view.vmname.set_text(vmlist_widget_row.name)
+        buffer = self.view.vmdesc.get_buffer()
+        if vmlist_widget_row.desc is not None:
+            buffer.set_text(vmlist_widget_row.desc)
+        else:
+            buffer.set_text("")
+
+    def on_kbutton_clicked(self, *args):
 
     # pylint: disable=W0613
-    def on_refreshbutton__clicked(self, *args):
+    #def on_refreshbutton__clicked(self, *args):
         '''
         When refresh-button is clicked
         '''
-        self.view.populate_vmlist()
+     #   self.view.populate_vmlist()
 
 
 # pylint: disable=R0904
@@ -90,23 +87,26 @@ class VirtlabView(BaseView):
         tableColumns = [
                     Column("name", title='VM Name', width=130, sorted=True),
                     Column("state", title='State', width=70),
-                    Column("join", title='VM State', width=90)
+                    Column("order", title='Startup order', width=120),
+                    Column("desc", title='Description', width=200)
                     ]
 
         self.vmlist_widget = ObjectList(tableColumns)
+        self.vmlist_widget.set_size_request(300, 400)
         self.vmlist_widget.set_selection_mode(gtk.SELECTION_SINGLE)
         self.hbox4.pack_start(self.vmlist_widget)
         self.vmlist_widget.show()
-        self.vms_ordering = {}
+
         try:
             self.populate_vmlist()
+
         except VMLabException as exception:
             if exception.vme_id is c.EXCEPTION_LIBVIRT_001:
                 error("Initialization error",
                       "No connection to Libvirtd.\n Exiting.")
                 exit(1)
 
-        self.virtlab.set_size_request(600, 460)
+        self.virtlab.set_size_request(800, 460)
 
     def populate_vmlist(self, force_reload=False):
         '''
@@ -118,13 +118,9 @@ class VirtlabView(BaseView):
             for vmachine in self.__vm_list.get_vms():
                 self.vmlist_widget.append(Settable(name=vmachine.get_name(),
                                 state=vmachine.get_state().get_state_str(),
-                                join=self.is_active_vm(vmachine.get_name())))
+                                order=vmachine.get_order(),
+                                desc=vmachine.get_desc()))
 
-    def is_active_vm(self, vm_name):
-        if vm_name in self.vms_ordering:
-            return True
-        else:
-            return False
 
 # pylint: disable=W0613
 def main(argv=None):

@@ -58,12 +58,19 @@ class VMStateGone(VMState):
         super(VMStateGone, self).__init__(3, c.STATE_GONE)
 
 
-class VMIstance(object):
+class VMInstance(object):
 
-    def __init__(self, name, state, order=None):
+    def __init__(self, name, state, order=None, desc=""):
         self.__name = name
         self.__state = state
         self.__order = order
+        self.__desc = desc
+
+    def get_desc(self):
+        return self.__desc
+
+    def set_desc(self, value):
+        self.__desc = value
 
     def set_order(self, order):
         self.__order = order
@@ -83,14 +90,10 @@ class VMIstance(object):
     def set_state(self, value):
         self.__state = value
 
-    def del_name(self):
-        del self.__name
-
-    def del_state(self):
-        del self.__state
-
-    name = property(get_name, set_name, del_name, "Virtual machine name")
-    state = property(get_state, set_state, del_state, "Virtual machine state")
+    name = property(get_name, set_name, "Virtual machine name")
+    state = property(get_state, set_state, "Virtual machine state")
+    order = property(get_order, set_order, "Virtual machine order")
+    desc = property(get_desc, set_desc, "Virtual machine description")
 
 
 class LibVirtDao():
@@ -129,19 +132,19 @@ class VMCatalog(object):
         if name in self.__vms:
             self.__vms[name].set_order(order)
         else:
-            self.__vms[name] = VMIstance(name, VMStateGone(), order)
+            self.__vms[name] = VMInstance(name, VMStateGone(), order)
 
     def __stopped(self):
         conn = self.get_conn()
         for name in conn.listDefinedDomains():
-            self.__vms[name] = VMIstance(name, VMStateStopped())
+            self.__vms[name] = VMInstance(name, VMStateStopped())
 
     def __running(self):
         conn = self.get_conn()
         for vm_id in conn.listDomainsID():
             domain = conn.lookupByID(vm_id)
             name = domain.name()
-            self.__vms[name] = VMIstance(name, VMStateRunning())
+            self.__vms[name] = VMInstance(name, VMStateRunning())
 
     def get_vm(self, name):
         if name in self.__vms:

@@ -24,7 +24,7 @@ Created on Jun 7, 2012
 '''
 import unittest
 import mox
-from virtlab.virtual import VMLabException, LibVirtDao, VMCatalog
+from virtlab.virtual import VMLabException, LibVirtDao, VMCatalog, VMInstance
 from libvirt import virConnect, virDomain
 import virtlab.constant as c
 
@@ -191,6 +191,67 @@ class Test(unittest.TestCase):
 
         #Assert
         self.assertEqual(True, history_changed)
+
+    def testDescriptionPersistsOverReload(self):
+        # Setup
+        self.setUpMVMock()
+        run_vm_name = "TEST-VM-RUN"
+        stop_vm_name = "TEST-VM-STOP"
+        self.addRunningVMs(run_vm_name, 1)
+        self.addStoppedVMs(stop_vm_name, 0)
+        mox.Replay(self.virConnectMock, self.virDomainMock)
+
+        #Test
+        vm_catalog = VMCatalog()
+        assert isinstance(vm_catalog, VMCatalog)
+        vm_catalog.refesh()
+
+        vm = vm_catalog.get_vm(run_vm_name + "-0")
+        assert isinstance(vm, VMInstance)
+        desc = "Test"
+        vm.set_desc(desc)
+
+        #Setup
+        mox.Reset(self.virConnectMock, self.virDomainMock)
+        self.addRunningVMs(run_vm_name, 1)
+        self.addStoppedVMs(stop_vm_name, 0)
+        mox.Replay(self.virConnectMock, self.virDomainMock)
+
+        vm_catalog.refesh()
+        vm = vm_catalog.get_vm(run_vm_name + "-0")
+        #Assert
+        self.assertEqual(desc, vm.get_desc())
+
+    def testOrderPersistsOverReload(self):
+        # Setup
+        self.setUpMVMock()
+        run_vm_name = "TEST-VM-RUN"
+        stop_vm_name = "TEST-VM-STOP"
+        self.addRunningVMs(run_vm_name, 1)
+        self.addStoppedVMs(stop_vm_name, 0)
+        mox.Replay(self.virConnectMock, self.virDomainMock)
+
+        #Test
+        vm_catalog = VMCatalog()
+        assert isinstance(vm_catalog, VMCatalog)
+        vm_catalog.refesh()
+
+        vm = vm_catalog.get_vm(run_vm_name + "-0")
+        assert isinstance(vm, VMInstance)
+        order = 1
+        vm.set_order(1)
+
+        #Setup
+        mox.Reset(self.virConnectMock, self.virDomainMock)
+        self.addRunningVMs(run_vm_name, 1)
+        self.addStoppedVMs(stop_vm_name, 0)
+        mox.Replay(self.virConnectMock, self.virDomainMock)
+
+        vm_catalog.refesh()
+        vm = vm_catalog.get_vm(run_vm_name + "-0")
+        #Assert
+        self.assertEqual(order, vm.get_order())
+
 
     def testGetMixedVmInstancesOrderAttached(self):
         self.setUpMVMock()
