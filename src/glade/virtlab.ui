@@ -154,86 +154,41 @@
               <object class="GtkLayout" id="layout1">
                 <property name="visible">True</property>
                 <child>
-                  <object class="GtkCheckButton" id="checkbutton1">
-                    <property name="label" translatable="yes">DNS Server</property>
-                    <property name="width_request">110</property>
-                    <property name="height_request">33</property>
-                    <property name="visible">True</property>
-                    <property name="can_focus">True</property>
-                    <property name="receives_default">False</property>
-                    <property name="draw_indicator">True</property>
-                  </object>
-                  <packing>
-                    <property name="x">40</property>
-                    <property name="y">23</property>
-                  </packing>
-                </child>
-                <child>
-                  <object class="GtkCheckButton" id="checkbutton2">
-                    <property name="label" translatable="yes">STMP Server</property>
-                    <property name="width_request">119</property>
-                    <property name="height_request">26</property>
-                    <property name="visible">True</property>
-                    <property name="can_focus">True</property>
-                    <property name="receives_default">False</property>
-                    <property name="draw_indicator">True</property>
-                  </object>
-                  <packing>
-                    <property name="x">40</property>
-                    <property name="y">51</property>
-                  </packing>
-                </child>
-                <child>
-                  <object class="GtkCheckButton" id="checkbutton3">
-                    <property name="label" translatable="yes">LDAP Server</property>
-                    <property name="width_request">118</property>
-                    <property name="height_request">36</property>
-                    <property name="visible">True</property>
-                    <property name="can_focus">True</property>
-                    <property name="receives_default">False</property>
-                    <property name="draw_indicator">True</property>
-                  </object>
-                  <packing>
-                    <property name="x">40</property>
-                    <property name="y">75</property>
-                  </packing>
-                </child>
-                <child>
                   <object class="GtkEntry" id="vmname">
                     <property name="width_request">215</property>
                     <property name="height_request">25</property>
                     <property name="visible">True</property>
-                    <property name="can_focus">True</property>
+                    <property name="sensitive">False</property>
                     <property name="editable">False</property>
                     <property name="invisible_char">&#x25CF;</property>
                   </object>
                   <packing>
-                    <property name="x">25</property>
-                    <property name="y">202</property>
+                    <property name="x">24</property>
+                    <property name="y">186</property>
                   </packing>
                 </child>
                 <child>
                   <object class="GtkLabel" id="label1">
-                    <property name="width_request">141</property>
-                    <property name="height_request">29</property>
+                    <property name="width_request">49</property>
+                    <property name="height_request">30</property>
                     <property name="visible">True</property>
-                    <property name="label" translatable="yes">Starting order</property>
+                    <property name="label" translatable="yes">Start</property>
                   </object>
                   <packing>
-                    <property name="x">1</property>
-                    <property name="y">239</property>
+                    <property name="x">21</property>
+                    <property name="y">216</property>
                   </packing>
                 </child>
                 <child>
                   <object class="GtkLabel" id="label2">
-                    <property name="width_request">96</property>
-                    <property name="height_request">22</property>
+                    <property name="width_request">128</property>
+                    <property name="height_request">21</property>
                     <property name="visible">True</property>
-                    <property name="label" translatable="yes">Seleted VM</property>
+                    <property name="label" translatable="yes">Virtual Machine</property>
                   </object>
                   <packing>
-                    <property name="x">19</property>
-                    <property name="y">180</property>
+                    <property name="x">15</property>
+                    <property name="y">163</property>
                   </packing>
                 </child>
                 <child>
@@ -243,20 +198,19 @@
                     <property name="visible">True</property>
                   </object>
                   <packing>
-                    <property name="x">-4</property>
-                    <property name="y">132</property>
+                    <property name="x">3</property>
+                    <property name="y">138</property>
                   </packing>
                 </child>
                 <child>
-                  <object class="GtkComboBox" id="combobox1">
-                    <property name="width_request">100</property>
+                  <object class="GtkComboBox" id="ordercombo">
+                    <property name="width_request">67</property>
                     <property name="height_request">25</property>
                     <property name="visible">True</property>
-                    <property name="model">liststore1</property>
                   </object>
                   <packing>
-                    <property name="x">138</property>
-                    <property name="y">240</property>
+                    <property name="x">71</property>
+                    <property name="y">215</property>
                   </packing>
                 </child>
                 <child>
@@ -297,7 +251,7 @@
                     <property name="pixels_above_lines">1</property>
                     <property name="pixels_below_lines">1</property>
                     <property name="pixels_inside_wrap">2</property>
-                    <property name="wrap_mode">word</property>
+                    <property name="wrap_mode">word-char</property>
                     <property name="left_margin">2</property>
                     <property name="right_margin">2</property>
                     <property name="indent">2</property>
@@ -319,6 +273,104 @@
                   <packing>
                     <property name="x">26</property>
                     <property name="y">268</property>
+                  </packing>
+                </child>
+                <child>
+                  <object class="GtkEntry" id="vmname1">
+                    <property name="width_request">213</property>
+                    <property name="height_request">24</property>
+                    <property name="visible">True</property>
+                    <property name="can_focus">True</property>
+                    <property name="invisible_char">&#x25CF;</property>
+                  </object>
+                  <packing>
+                    <property name="x">21</property>
+                    <property name="y">35</property>
+                  </packing>
+                </child>
+                <child>
+                  <object class="GtkLabel" id="label5">
+                    <property name="width_request">105</property>
+                    <property name="height_request">22</property>
+                    <property name="visible">True</property>
+                    <property name="label" translatable="yes">Project Name</property>
+                  </object>
+                  <packing>
+                    <property name="x">17</property>
+                    <property name="y">12</property>
+                  </packing>
+                </child>
+                <child>
+                  <object class="GtkButton" id="button1">
+                    <property name="label" translatable="yes">Start all project VMs</property>
+                    <property name="width_request">204</property>
+                    <property name="height_request">24</property>
+                    <property name="visible">True</property>
+                    <property name="can_focus">True</property>
+                    <property name="receives_default">True</property>
+                  </object>
+                  <packing>
+                    <property name="x">21</property>
+                    <property name="y">77</property>
+                  </packing>
+                </child>
+                <child>
+                  <object class="GtkButton" id="button2">
+                    <property name="label" translatable="yes">Stop all project VMs</property>
+                    <property name="width_request">202</property>
+                    <property name="height_request">23</property>
+                    <property name="visible">True</property>
+                    <property name="can_focus">True</property>
+                    <property name="receives_default">True</property>
+                  </object>
+                  <packing>
+                    <property name="x">21</property>
+                    <property name="y">111</property>
+                  </packing>
+                </child>
+                <child>
+                  <object class="GtkSpinButton" id="spinbutton1">
+                    <property name="width_request">61</property>
+                    <property name="height_request">26</property>
+                    <property name="visible">True</property>
+                    <property name="can_focus">True</property>
+                    <property name="max_length">4</property>
+                    <property name="invisible_char">&#x25CF;</property>
+                    <property name="activates_default">True</property>
+                    <property name="adjustment">adjustment1</property>
+                    <property name="climb_rate">0.5</property>
+                    <property name="digits">1</property>
+                    <property name="snap_to_ticks">True</property>
+                    <property name="numeric">True</property>
+                    <property name="wrap">True</property>
+                  </object>
+                  <packing>
+                    <property name="x">115</property>
+                    <property name="y">246</property>
+                  </packing>
+                </child>
+                <child>
+                  <object class="GtkLabel" id="label4">
+                    <property name="width_request">87</property>
+                    <property name="height_request">27</property>
+                    <property name="visible">True</property>
+                    <property name="label" translatable="yes">and wait for</property>
+                  </object>
+                  <packing>
+                    <property name="x">26</property>
+                    <property name="y">246</property>
+                  </packing>
+                </child>
+                <child>
+                  <object class="GtkLabel" id="label6">
+                    <property name="width_request">80</property>
+                    <property name="height_request">20</property>
+                    <property name="visible">True</property>
+                    <property name="label" translatable="yes">minutes</property>
+                  </object>
+                  <packing>
+                    <property name="x">169</property>
+                    <property name="y">250</property>
                   </packing>
                 </child>
               </object>
@@ -347,10 +399,14 @@
       </object>
     </child>
   </object>
-  <object class="GtkListStore" id="liststore1"/>
   <object class="GtkImage" id="image1">
     <property name="visible">True</property>
     <property name="stock">gtk-open</property>
   </object>
   <object class="GtkTextBuffer" id="vmdescbuffer"/>
+  <object class="GtkAdjustment" id="adjustment1">
+    <property name="upper">60</property>
+    <property name="step_increment">0.25</property>
+    <property name="page_increment">10</property>
+  </object>
 </interface>

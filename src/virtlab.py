@@ -106,6 +106,19 @@ class VirtlabView(BaseView):
         self.vmlist_widget.set_selection_mode(gtk.SELECTION_SINGLE)
         self.hbox4.pack_start(self.vmlist_widget)
 
+
+        store = gtk.ListStore(gobject.TYPE_STRING)
+        store.append (["1st"])
+        store.append (["1st"])
+        store.append (["2nd"])
+        store.append (["3rd"])
+        store.append (["4th"])
+
+        self.ordercombo.set_model(store)
+        cell = gtk.CellRendererText()
+        self.ordercombo.pack_start(cell, True)
+        self.ordercombo.add_attribute(cell, 'text', 0)
+
         self.vmlist_widget.show()
 
         try:
