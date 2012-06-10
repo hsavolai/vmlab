@@ -60,23 +60,23 @@ class VMStateGone(VMState):
 
 class VMInstance(object):
 
-    def __init__(self, name, state, order=None, desc=""):
+    def __init__(self, metadataref, name, state):
         self.__name = name
         self.__state = state
-        self.__order = order
-        self.__desc = desc
+        assert(metadataref, VMMetadata)
+        self.__metadataref = metadataref
 
     def get_desc(self):
-        return self.__desc
+        return self.__metadataref.get_desc()
 
     def set_desc(self, value):
-        self.__desc = value
+        self.__metadataref.set_desc(value)
 
-    def set_order(self, order):
-        self.__order = order
+    def set_order(self, value):
+        self.__metadataref.set_order(value)
 
     def get_order(self):
-        return self.__order
+        return self.__metadataref.get_order()
 
     def get_name(self):
         return self.__name
@@ -92,6 +92,28 @@ class VMInstance(object):
 
     name = property(get_name, set_name, "Virtual machine name")
     state = property(get_state, set_state, "Virtual machine state")
+    order = property(get_order, set_order, "Virtual machine order")
+    desc = property(get_desc, set_desc, "Virtual machine description")
+
+
+class VMMetadata(object):
+
+    def __init__(self):
+        self.__order = None
+        self.__desc = ""
+
+    def get_desc(self):
+        return self.__desc
+
+    def set_desc(self, value):
+        self.__desc = value
+
+    def set_order(self, order):
+        self.__order = order
+
+    def get_order(self):
+        return self.__order
+
     order = property(get_order, set_order, "Virtual machine order")
     desc = property(get_desc, set_desc, "Virtual machine description")
 
@@ -116,6 +138,7 @@ class VMCatalog(object):
     def __init__(self):
         self.__vms = {}
         self.__vms_history = {}
+        self.__vms_metadata = {}
 
     def __empty(self):
         self.__vms.clear()
@@ -128,23 +151,21 @@ class VMCatalog(object):
             raise VMLabException(c.EXCEPTION_LIBVIRT_001, \
                                  c.EXCEPTION_LIBVIRT_001_DESC)
 
-    def attach_order(self, name, order):
-        if name in self.__vms:
-            self.__vms[name].set_order(order)
-        else:
-            self.__vms[name] = VMInstance(name, VMStateGone(), order)
-
-    def __stopped(self):
-        conn = self.get_conn()
+    def __stopped(self, conn):
         for name in conn.listDefinedDomains():
-            self.__vms[name] = VMInstance(name, VMStateStopped())
+            if not name in self.__vms_metadata:
+                self.__vms_metadata[name] = VMMetadata()
+            self.__vms[name] = VMInstance(self.__vms_metadata[name], \
+                                          name, VMStateStopped())
 
-    def __running(self):
-        conn = self.get_conn()
+    def __running(self, conn):
         for vm_id in conn.listDomainsID():
             domain = conn.lookupByID(vm_id)
             name = domain.name()
-            self.__vms[name] = VMInstance(name, VMStateRunning())
+            if not name in self.__vms_metadata:
+                self.__vms_metadata[name] = VMMetadata()
+            self.__vms[name] = VMInstance(self.__vms_metadata[name], \
+                                          name, VMStateRunning())
 
     def get_vm(self, name):
         if name in self.__vms:
@@ -155,11 +176,15 @@ class VMCatalog(object):
     def get_vms(self):
         return self.__vms.values()
 
+    def get_metadata_handle(self, vm_name):
+        return self.__vms_metadata[vm_name]
+
     def refesh(self):
 
         self.__empty()
-        self.__running()
-        self.__stopped()
+        conn = self.get_conn()
+        self.__running(conn)
+        self.__stopped(conn)
 
         changed = False
         for historical_vm_instance_name in self.__vms_history:

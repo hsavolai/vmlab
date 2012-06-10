@@ -33,14 +33,16 @@ import gtk
 import gobject
 import sys
 import virtlab.constant as c
+from gtk import gdk
 
 
 class VirtLabControl(BaseController):
     '''
     MVC Controller
     '''
-    def __init__(self, view_param):
-        BaseController.__init__(self, view_param)
+    def __init__(self, view, model):
+        BaseController.__init__(self, view)
+        self.model = model
         gobject.timeout_add_seconds(1, self.callback)
 
     def callback(self):
@@ -53,21 +55,29 @@ class VirtLabControl(BaseController):
     # pylint: disable=W0613
     def on_vmlist_widget__selection_changed(self, vmlist_widget_allrows,
                                             vmlist_widget_row):
+        if vmlist_widget_row is None:
+            return
         self.view.vmname.set_text(vmlist_widget_row.name)
-        buffer = self.view.vmdesc.get_buffer()
-        if vmlist_widget_row.desc is not None:
-            buffer.set_text(vmlist_widget_row.desc)
-        else:
-            buffer.set_text("")
+        text_buffer = self.view.vmdesc.get_buffer()
+        text_buffer.set_text(vmlist_widget_row.desc)
 
-    def on_kbutton_clicked(self, *args):
+    def on_okbutton__clicked(self, *args):
+        vm_name = self.view.vmname.get_text()
+        if vm_name is "":
+            return
+        vm_name = self.view.vmname.get_text()
+        text_buffer = self.view.vmdesc.get_buffer()
+        vm_desc = text_buffer.get_text(text_buffer.get_start_iter(), text_buffer.get_end_iter(), False)
+        self.model.get_vm(vm_name).set_desc(vm_desc)
+        self.clear_vm_edit()
+        self.view.populate_vmlist(True)
 
-    # pylint: disable=W0613
-    #def on_refreshbutton__clicked(self, *args):
-        '''
-        When refresh-button is clicked
-        '''
-     #   self.view.populate_vmlist()
+    def on_cancelbutton__clicked(self, *args):
+        self.clear_vm_edit()
+
+    def clear_vm_edit(self):
+        self.view.vmname.set_text("")
+        self.view.vmdesc.get_buffer().set_text("")
 
 
 # pylint: disable=R0904
@@ -76,9 +86,9 @@ class VirtlabView(BaseView):
     MVC View
     '''
 
-    def __init__(self):
-        self.foo = False
-        self.__vm_list = VMCatalog()
+    def __init__(self, model):
+
+        self.__vm_list = model
 
         BaseView.__init__(self,
                                gladefile="virtlab",
@@ -95,6 +105,7 @@ class VirtlabView(BaseView):
         self.vmlist_widget.set_size_request(300, 400)
         self.vmlist_widget.set_selection_mode(gtk.SELECTION_SINGLE)
         self.hbox4.pack_start(self.vmlist_widget)
+
         self.vmlist_widget.show()
 
         try:
@@ -125,8 +136,9 @@ class VirtlabView(BaseView):
 # pylint: disable=W0613
 def main(argv=None):
 
-    VIEW = VirtlabView()
-    VirtLabControl(VIEW)
+    MODEL = VMCatalog()
+    VIEW = VirtlabView(MODEL)
+    VirtLabControl(VIEW, MODEL)
     VIEW.show()
     gtk.main()
 

@@ -268,7 +268,7 @@ class Test(unittest.TestCase):
         mox.Replay(self.virConnectMock, self.virDomainMock)
         vm_catalog = VMCatalog()
         vm_catalog.refesh()
-        vm_catalog.attach_order(run_vm_name, 1)
+        vm_catalog.get_vm(run_vm_name).set_order(1)
         vms = vm_catalog.get_vms()
 
         self.assertEqual(2, len(vms), "There should be two vms! / "\
