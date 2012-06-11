@@ -81,7 +81,7 @@ class VirtLabControl(BaseController):
 
 
 # pylint: disable=R0904
-class VirtlabView(BaseView):
+class VirtLabView(BaseView):
     '''
     MVC View
     '''
@@ -106,29 +106,23 @@ class VirtlabView(BaseView):
         self.vmlist_widget.set_selection_mode(gtk.SELECTION_SINGLE)
         self.hbox4.pack_start(self.vmlist_widget)
 
-
         store = gtk.ListStore(gobject.TYPE_STRING)
-        store.append (["1st"])
-        store.append (["1st"])
-        store.append (["2nd"])
-        store.append (["3rd"])
-        store.append (["4th"])
-
-        self.ordercombo.set_model(store)
-        cell = gtk.CellRendererText()
-        self.ordercombo.pack_start(cell, True)
-        self.ordercombo.add_attribute(cell, 'text', 0)
 
         self.vmlist_widget.show()
 
         try:
             self.populate_vmlist()
-
+            self.populate_order_dropdown(store, len(self.__vm_list.get_vms()))
         except VMLabException as exception:
             if exception.vme_id is c.EXCEPTION_LIBVIRT_001:
                 error("Initialization error",
                       "No connection to Libvirtd.\n Exiting.")
                 exit(1)
+
+        self.ordercombo.set_model(store)
+        cell = gtk.CellRendererText()
+        self.ordercombo.pack_start(cell, True)
+        self.ordercombo.add_attribute(cell, 'text', 0)
 
         self.virtlab.set_size_request(800, 460)
 
@@ -145,12 +139,41 @@ class VirtlabView(BaseView):
                                 order=vmachine.get_order(),
                                 desc=vmachine.get_desc()))
 
+    def populate_order_dropdown(self, list_store, vm_count):
+        list_store.clear()
+        if vm_count > 0:
+            for num in range(1, vm_count + 1):
+                list_store.append([self.get_display_order(num)])
+
+    @staticmethod
+    def get_display_order(number):
+        upper_suffixes = {
+                "11": "th",
+                "12": "th",
+                "13": "th"
+                }
+
+        lower_suffixes = {
+                "1": "st",
+                "2": "nd",
+                "3": "rd",
+                }
+        digits = str(number)
+
+        if digits[-2:] in upper_suffixes:
+            return digits + upper_suffixes[digits[-2:]]
+
+        if digits[-1:] in lower_suffixes:
+            return digits + lower_suffixes[digits[-1:]]
+        else:
+            return digits + "th"
+
 
 # pylint: disable=W0613
 def main(argv=None):
 
     MODEL = VMCatalog()
-    VIEW = VirtlabView(MODEL)
+    VIEW = VirtLabView(MODEL)
     VirtLabControl(VIEW, MODEL)
     VIEW.show()
     gtk.main()
