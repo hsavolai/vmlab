@@ -63,7 +63,6 @@ class VMInstance(object):
     def __init__(self, metadataref, name, state):
         self.__name = name
         self.__state = state
-        assert(metadataref, VMMetadata)
         self.__metadataref = metadataref
 
     def get_desc(self):
@@ -99,8 +98,15 @@ class VMInstance(object):
 class VMMetadata(object):
 
     def __init__(self):
-        self.__order = None
+        self.__order = 0
         self.__desc = ""
+        self.__delay = 0.0
+
+    def get_delay(self):
+        return self.__delay
+
+    def set_delay(self, value):
+        self.__delay = value
 
     def get_desc(self):
         return self.__desc
@@ -116,6 +122,7 @@ class VMMetadata(object):
 
     order = property(get_order, set_order, "Virtual machine order")
     desc = property(get_desc, set_desc, "Virtual machine description")
+    delay = property(get_delay, set_delay, None, None)
 
 
 class LibVirtDao():

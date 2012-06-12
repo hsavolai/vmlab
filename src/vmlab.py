@@ -33,7 +33,6 @@ import gtk
 import gobject
 import sys
 import virtlab.constant as c
-from gtk import gdk
 
 
 class VirtLabControl(BaseController):
@@ -47,7 +46,7 @@ class VirtLabControl(BaseController):
 
     def callback(self):
         '''
-        Callback for timer of refreshing list of vm's
+        Callback for timer of refreshing list of VMs
         '''
         self.view.populate_vmlist()
         return True
@@ -60,15 +59,20 @@ class VirtLabControl(BaseController):
         self.view.vmname.set_text(vmlist_widget_row.name)
         text_buffer = self.view.vmdesc.get_buffer()
         text_buffer.set_text(vmlist_widget_row.desc)
+        self.view.ordercombo.set_active(vmlist_widget_row.ordinal)
+        #get value from table and find a way to look the order value
 
     def on_okbutton__clicked(self, *args):
         vm_name = self.view.vmname.get_text()
         if vm_name is "":
             return
-        vm_name = self.view.vmname.get_text()
+        vm_order = self.view.ordercombo.get_active()
+        vm_time = self.view.startspinner.get_value()
         text_buffer = self.view.vmdesc.get_buffer()
         vm_desc = text_buffer.get_text(text_buffer.get_start_iter(), text_buffer.get_end_iter(), False)
+
         self.model.get_vm(vm_name).set_desc(vm_desc)
+        self.model.get_vm(vm_name).set_order(vm_order)
         self.clear_vm_edit()
         self.view.populate_vmlist(True)
 
@@ -78,6 +82,8 @@ class VirtLabControl(BaseController):
     def clear_vm_edit(self):
         self.view.vmname.set_text("")
         self.view.vmdesc.get_buffer().set_text("")
+        self.view.startspinner.set_value(0)
+        self.view.ordercombo.set_active(0)
 
 
 # pylint: disable=R0904
@@ -97,7 +103,9 @@ class VirtLabView(BaseView):
         tableColumns = [
                     Column("name", title='VM Name', width=130, sorted=True),
                     Column("state", title='State', width=70),
-                    Column("order", title='Startup order', width=120),
+                    Column("order", title='Order', width=70),
+                    Column("ordinal", visible=False),
+                    Column("delay", visible=False),
                     Column("desc", title='Description', width=200)
                     ]
 
@@ -136,17 +144,21 @@ class VirtLabView(BaseView):
             for vmachine in self.__vm_list.get_vms():
                 self.vmlist_widget.append(Settable(name=vmachine.get_name(),
                                 state=vmachine.get_state().get_state_str(),
-                                order=vmachine.get_order(),
+                                order=self.get_display_order(vmachine.get_order()),
+                                ordinal=vmachine.get_order(),
                                 desc=vmachine.get_desc()))
 
     def populate_order_dropdown(self, list_store, vm_count):
         list_store.clear()
+        list_store.append([""])
         if vm_count > 0:
             for num in range(1, vm_count + 1):
                 list_store.append([self.get_display_order(num)])
 
     @staticmethod
     def get_display_order(number):
+        if number is 0:
+            return ""
         upper_suffixes = {
                 "11": "th",
                 "12": "th",
