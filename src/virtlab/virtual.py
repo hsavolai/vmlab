@@ -77,6 +77,12 @@ class VMInstance(object):
     def get_order(self):
         return self.__metadataref.get_order()
 
+    def set_delay(self, value):
+        self.__metadataref.set_delay(value)
+
+    def get_delay(self):
+        return self.__metadataref.get_delay()
+
     def get_name(self):
         return self.__name
 
@@ -174,6 +180,12 @@ class VMCatalog(object):
             self.__vms[name] = VMInstance(self.__vms_metadata[name], \
                                           name, VMStateRunning())
 
+    def __gone(self):
+        gone = set(self.__vms).symmetric_difference(set(self.__vms_metadata))
+        for name in gone:
+            self.__vms[name] = VMInstance(self.__vms_metadata[name], \
+                                          name, VMStateGone())
+
     def get_vm(self, name):
         if name in self.__vms:
             return self.__vms[name]
@@ -186,12 +198,19 @@ class VMCatalog(object):
     def get_metadata_handle(self, vm_name):
         return self.__vms_metadata[vm_name]
 
+    def set_vms_metadata(self, value):
+        self.__vms_metadata = value
+
+    def get_vms_metadata(self):
+        return self.__vms_metadata
+
     def refesh(self):
 
         self.__empty()
         conn = self.get_conn()
         self.__running(conn)
         self.__stopped(conn)
+        self.__gone()
 
         changed = False
         for historical_vm_instance_name in self.__vms_history:

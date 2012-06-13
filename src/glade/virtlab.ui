@@ -22,7 +22,7 @@
                   <object class="GtkMenu" id="menu1">
                     <property name="visible">True</property>
                     <child>
-                      <object class="GtkImageMenuItem" id="imagemenuitem1">
+                      <object class="GtkImageMenuItem" id="newmenuitem">
                         <property name="label">gtk-new</property>
                         <property name="visible">True</property>
                         <property name="use_underline">True</property>
@@ -30,7 +30,7 @@
                       </object>
                     </child>
                     <child>
-                      <object class="GtkImageMenuItem" id="imagemenuitem2">
+                      <object class="GtkImageMenuItem" id="openmenuitem">
                         <property name="label">Open Labset</property>
                         <property name="visible">True</property>
                         <property name="image">image1</property>
@@ -38,7 +38,7 @@
                       </object>
                     </child>
                     <child>
-                      <object class="GtkImageMenuItem" id="imagemenuitem3">
+                      <object class="GtkImageMenuItem" id="savemenuitem">
                         <property name="label">gtk-save</property>
                         <property name="visible">True</property>
                         <property name="use_underline">True</property>
@@ -46,7 +46,7 @@
                       </object>
                     </child>
                     <child>
-                      <object class="GtkImageMenuItem" id="imagemenuitem4">
+                      <object class="GtkImageMenuItem" id="saveasmenuitem">
                         <property name="label">gtk-save-as</property>
                         <property name="visible">True</property>
                         <property name="use_underline">True</property>
@@ -277,7 +277,7 @@
                   </packing>
                 </child>
                 <child>
-                  <object class="GtkEntry" id="vmname1">
+                  <object class="GtkEntry" id="projectname">
                     <property name="width_request">213</property>
                     <property name="height_request">24</property>
                     <property name="visible">True</property>
@@ -331,16 +331,16 @@
                 </child>
                 <child>
                   <object class="GtkSpinButton" id="startspinner">
-                    <property name="width_request">61</property>
+                    <property name="width_request">66</property>
                     <property name="height_request">26</property>
                     <property name="visible">True</property>
                     <property name="can_focus">True</property>
-                    <property name="max_length">4</property>
+                    <property name="max_length">5</property>
                     <property name="invisible_char">&#x25CF;</property>
                     <property name="activates_default">True</property>
                     <property name="adjustment">adjustment1</property>
                     <property name="climb_rate">0.5</property>
-                    <property name="digits">1</property>
+                    <property name="digits">2</property>
                     <property name="snap_to_ticks">True</property>
                     <property name="numeric">True</property>
                     <property name="wrap">True</property>
@@ -364,13 +364,13 @@
                 </child>
                 <child>
                   <object class="GtkLabel" id="label6">
-                    <property name="width_request">80</property>
+                    <property name="width_request">72</property>
                     <property name="height_request">20</property>
                     <property name="visible">True</property>
                     <property name="label" translatable="yes">minutes</property>
                   </object>
                   <packing>
-                    <property name="x">169</property>
+                    <property name="x">181</property>
                     <property name="y">250</property>
                   </packing>
                 </child>

@@ -33,6 +33,7 @@ import gtk
 import gobject
 import sys
 import virtlab.constant as c
+from virtlab.project import Project, ProjectDao
 
 
 class VirtLabControl(BaseController):
@@ -60,11 +61,13 @@ class VirtLabControl(BaseController):
         text_buffer = self.view.vmdesc.get_buffer()
         text_buffer.set_text(vmlist_widget_row.desc)
         self.view.ordercombo.set_active(vmlist_widget_row.ordinal)
+        self.view.startspinner.set_value(vmlist_widget_row.delay)
         #get value from table and find a way to look the order value
 
     def on_okbutton__clicked(self, *args):
         vm_name = self.view.vmname.get_text()
         if vm_name is "":
+            self.clear_vm_edit()
             return
         vm_order = self.view.ordercombo.get_active()
         vm_time = self.view.startspinner.get_value()
@@ -72,7 +75,9 @@ class VirtLabControl(BaseController):
         vm_desc = text_buffer.get_text(text_buffer.get_start_iter(), text_buffer.get_end_iter(), False)
 
         self.model.get_vm(vm_name).set_desc(vm_desc)
-        self.model.get_vm(vm_name).set_order(vm_order)
+        if vm_order > 0:
+            self.model.get_vm(vm_name).set_order(vm_order)
+            self.model.get_vm(vm_name).set_delay(vm_time)
         self.clear_vm_edit()
         self.view.populate_vmlist(True)
 
@@ -84,6 +89,46 @@ class VirtLabControl(BaseController):
         self.view.vmdesc.get_buffer().set_text("")
         self.view.startspinner.set_value(0)
         self.view.ordercombo.set_active(0)
+        self.view.projectname.set_text("")
+
+    def on_newmenuitem__activate(self, *args):
+        project = Project()
+        self.model.set_vms_metadata(project.get_metadata())
+        self.clear_vm_edit()
+        self.view.populate_vmlist(True)
+
+    def on_openmenuitem__activate(self, *args):
+        file_name = self.view.dialog_filechooser_open()
+        if file_name is None:
+            return
+
+        try:
+            project = ProjectDao.load_project(file_name)
+        except:
+            # TODO FILE ERROR
+            project = Project()
+
+        self.model.set_vms_metadata(project.get_metadata())
+        self.view.projectname.set_text(project.get_project_name())
+        self.view.populate_vmlist(True)
+
+    def on_saveasmenuitem__activate(self, *args):
+
+        file_name = self.view.dialog_filechooser_save()
+        if file_name is None:
+            return
+
+        try:
+            project = Project()
+            project.set_project_name(self.view.projectname.get_text())
+            project.set_project_file(file_name)
+
+            #try:
+            project.set_metadata(self.model.get_vms_metadata())
+            ProjectDao.save_project(project)
+        except:
+            pass
+            # TODO FILE ERROR
 
 
 # pylint: disable=R0904
@@ -103,7 +148,7 @@ class VirtLabView(BaseView):
         tableColumns = [
                     Column("name", title='VM Name', width=130, sorted=True),
                     Column("state", title='State', width=70),
-                    Column("order", title='Order', width=70),
+                    Column("order", title='Order (Delay/min)', width=145),
                     Column("ordinal", visible=False),
                     Column("delay", visible=False),
                     Column("desc", title='Description', width=200)
@@ -134,6 +179,44 @@ class VirtLabView(BaseView):
 
         self.virtlab.set_size_request(800, 460)
 
+    def __delaystring(self, delay):
+        if delay > 0:
+            return " (" + str(delay) + ")"
+        else:
+            return ""
+
+    def dialog_filechooser_open(self):
+        chooser = gtk.FileChooserDialog(title="Open Labset Project", action=gtk.FILE_CHOOSER_ACTION_OPEN,
+                                  buttons=(gtk.STOCK_CANCEL, gtk.RESPONSE_CANCEL, gtk.STOCK_OPEN, gtk.RESPONSE_OK))
+        chooser.set_default_response(gtk.RESPONSE_OK)
+        file_name = ""
+        response = chooser.run()
+        if response == gtk.RESPONSE_OK:
+            file_name = chooser.get_filename()
+            chooser.destroy()
+            return file_name
+        elif response == gtk.RESPONSE_CANCEL:
+            chooser.destroy()
+            return
+
+    def dialog_filechooser_save(self):
+        chooser = gtk.FileChooserDialog(title="Save Labset Project", action=gtk.FILE_CHOOSER_ACTION_SAVE,
+                                  buttons=(gtk.STOCK_CANCEL, gtk.RESPONSE_CANCEL, gtk.STOCK_OPEN, gtk.RESPONSE_OK))
+
+        chooser.set_default_response(gtk.RESPONSE_CANCEL)
+        file_name = ""
+        response = chooser.run()
+        if response == gtk.RESPONSE_OK:
+            file_name = chooser.get_filename()
+            chooser.destroy()
+            return file_name
+        elif response == gtk.RESPONSE_CANCEL:
+            chooser.destroy()
+            return
+        elif response == gtk.RESPONSE_CLOSE:
+            chooser.destroy()
+            return
+
     def populate_vmlist(self, force_reload=False):
         '''
         Populates vmlist with current status
@@ -144,8 +227,9 @@ class VirtLabView(BaseView):
             for vmachine in self.__vm_list.get_vms():
                 self.vmlist_widget.append(Settable(name=vmachine.get_name(),
                                 state=vmachine.get_state().get_state_str(),
-                                order=self.get_display_order(vmachine.get_order()),
+                                order=self.get_display_order(vmachine.get_order()) + self.__delaystring(vmachine.get_delay()),
                                 ordinal=vmachine.get_order(),
+                                delay=vmachine.get_delay(),
                                 desc=vmachine.get_desc()))
 
     def populate_order_dropdown(self, list_store, vm_count):
@@ -185,6 +269,8 @@ class VirtLabView(BaseView):
 def main(argv=None):
 
     MODEL = VMCatalog()
+    PROJECT = Project()
+    MODEL.set_vms_metadata(PROJECT.get_metadata())
     VIEW = VirtLabView(MODEL)
     VirtLabControl(VIEW, MODEL)
     VIEW.show()
