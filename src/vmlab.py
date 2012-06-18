@@ -40,6 +40,7 @@ class VirtLabControl(BaseController):
     '''
     MVC Controller
     '''
+
     def __init__(self, view, model):
         BaseController.__init__(self, view)
         self.model = model
@@ -78,6 +79,8 @@ class VirtLabControl(BaseController):
         if vm_order > 0:
             self.model.get_vm(vm_name).set_order(vm_order)
             self.model.get_vm(vm_name).set_delay(vm_time)
+        else:
+            self.model.get_vm(vm_name).set_order(0)
         self.clear_vm_edit()
         self.view.populate_vmlist(True)
 
@@ -89,13 +92,13 @@ class VirtLabControl(BaseController):
         self.view.vmdesc.get_buffer().set_text("")
         self.view.startspinner.set_value(0)
         self.view.ordercombo.set_active(0)
-        self.view.projectname.set_text("")
 
     def on_newmenuitem__activate(self, *args):
         project = Project()
         self.model.set_vms_metadata(project.get_metadata())
         self.clear_vm_edit()
         self.view.populate_vmlist(True)
+        self.view.projectname.set_text("")
 
     def on_openmenuitem__activate(self, *args):
         file_name = self.view.dialog_filechooser_open()
@@ -108,9 +111,10 @@ class VirtLabControl(BaseController):
             # TODO FILE ERROR
             project = Project()
 
-        self.model.set_vms_metadata(project.get_metadata())
+        self.model.set_project(project)
         self.view.projectname.set_text(project.get_project_name())
         self.view.populate_vmlist(True)
+        self.view.change_title(project.get_project_file())
 
     def on_saveasmenuitem__activate(self, *args):
 
@@ -119,16 +123,49 @@ class VirtLabControl(BaseController):
             return
 
         try:
-            project = Project()
+            project = self.model.get_project()
             project.set_project_name(self.view.projectname.get_text())
             project.set_project_file(file_name)
 
             #try:
             project.set_metadata(self.model.get_vms_metadata())
             ProjectDao.save_project(project)
+            self.view.change_title(project.get_project_file())
         except:
             pass
             # TODO FILE ERROR
+
+    def on_savemenuitem__activate(self, *args):
+
+        project = self.model.get_project()
+
+        if project.get_project_file() is "" or None:
+            file_name = self.view.dialog_filechooser_save()
+            if file_name is None:
+                return
+        else:
+            file_name = project.get_project_file()
+
+        project.set_project_name(self.view.projectname.get_text())
+        project.set_project_file(file_name)
+
+        try:
+            project.set_metadata(self.model.get_vms_metadata())
+            ProjectDao.save_project(project)
+            self.view.change_title(project.get_project_file())
+        except:
+            pass
+        # TODO FILE ERROR
+
+    def on_quitmenuitem__activate(self, *args):
+        sys.exit(0)
+
+    def on_startallbutton__clicked(self, *args):
+        #self.model.start_vms_once()
+        self.model.scheduled_vm_launcher()
+
+    def on_stopallbutton__clicked(self, *args):
+        self.model.stop_vms_once()
 
 
 # pylint: disable=R0904
@@ -179,11 +216,20 @@ class VirtLabView(BaseView):
 
         self.virtlab.set_size_request(800, 460)
 
+        self.change_title("")
+
     def __delaystring(self, delay):
         if delay > 0:
             return " (" + str(delay) + ")"
         else:
             return ""
+
+    def change_title(self, value):
+        if value == "" or None:
+            self.virtlab.set_title(c.WINDOW_TITLE)
+        else:
+            self.virtlab.set_title(c.WINDOW_TITLE + "(" + value + ")")
+
 
     def dialog_filechooser_open(self):
         chooser = gtk.FileChooserDialog(title="Open Labset Project", action=gtk.FILE_CHOOSER_ACTION_OPEN,
@@ -201,7 +247,7 @@ class VirtLabView(BaseView):
 
     def dialog_filechooser_save(self):
         chooser = gtk.FileChooserDialog(title="Save Labset Project", action=gtk.FILE_CHOOSER_ACTION_SAVE,
-                                  buttons=(gtk.STOCK_CANCEL, gtk.RESPONSE_CANCEL, gtk.STOCK_OPEN, gtk.RESPONSE_OK))
+                                  buttons=(gtk.STOCK_CANCEL, gtk.RESPONSE_CANCEL, gtk.STOCK_SAVE, gtk.RESPONSE_OK))
 
         chooser.set_default_response(gtk.RESPONSE_CANCEL)
         file_name = ""
@@ -270,7 +316,7 @@ def main(argv=None):
 
     MODEL = VMCatalog()
     PROJECT = Project()
-    MODEL.set_vms_metadata(PROJECT.get_metadata())
+    MODEL.set_project(PROJECT)
     VIEW = VirtLabView(MODEL)
     VirtLabControl(VIEW, MODEL)
     VIEW.show()

@@ -25,7 +25,8 @@ Created on May 20, 2012
 import libvirt
 from copy import copy
 import virtlab.constant as c
-
+import threading
+import time
 
 class VMState(object):
 
@@ -152,6 +153,7 @@ class VMCatalog(object):
         self.__vms = {}
         self.__vms_history = {}
         self.__vms_metadata = {}
+        self.__project = None
 
     def __empty(self):
         self.__vms.clear()
@@ -163,6 +165,36 @@ class VMCatalog(object):
         except Exception:
             raise VMLabException(c.EXCEPTION_LIBVIRT_001, \
                                  c.EXCEPTION_LIBVIRT_001_DESC)
+
+    def start_vms_once(self):
+        for vm_instance_name in self.__vms:
+            vm_instance = self.__vms[vm_instance_name]
+            assert(isinstance(vm_instance, VMInstance))
+            if vm_instance.get_order() > 0 or len(vm_instance.get_desc()) > 0:
+                self.start_domain(vm_instance_name)
+
+    def stop_vms_once(self):
+        for vm_instance_name in self.__vms:
+            time.sleep(1)
+            vm_instance = self.__vms[vm_instance_name]
+            assert(isinstance(vm_instance, VMInstance))
+            if vm_instance.get_order() > 0 or len(vm_instance.get_desc()) > 0:
+                self.stop_domain(vm_instance.get_name())
+
+    def start_domain(self, vm_instance_name):
+        conn = self.get_conn()
+        domain = conn.lookupByName(vm_instance_name)
+        if domain.isActive() == 0:
+            domain.create()
+
+    def stop_domain(self, vm_instance_name):
+        conn = self.get_conn()
+        domain = conn.lookupByName(vm_instance_name)
+        if domain.isActive() == 1:
+            domain.destroy()
+
+    def get_project(self):
+        return self.__project
 
     def __stopped(self, conn):
         for name in conn.listDefinedDomains():
@@ -198,7 +230,7 @@ class VMCatalog(object):
     def get_metadata_handle(self, vm_name):
         return self.__vms_metadata[vm_name]
 
-    def set_vms_metadata(self, value):
+    def __set_vms_metadata(self, value):
         self.__vms_metadata = value
 
     def get_vms_metadata(self):
@@ -239,9 +271,56 @@ class VMCatalog(object):
 
     vms = property(get_vms, None, None, None)
 
+    def set_project(self, value):
+        self.__project = value
+        self.__set_vms_metadata(self.__project.get_metadata())
+
+    def scheduled_vm_launcher(self):
+
+        startable = {}
+
+        for vm_instance_name in self.__vms:
+            vm_instance = self.__vms[vm_instance_name]
+            if vm_instance.get_order() > 0 or len(vm_instance.get_desc()) > 0:
+                single = {}
+                single["domain"] = vm_instance_name
+                single["delay"] = vm_instance.get_delay() * 60
+                if vm_instance.get_order() not in startable:
+                    startable[vm_instance.get_order()] = []
+                startable[vm_instance.get_order()].append(single)
+
+        threads = []
+        incr_delay = 0
+        for order in startable:
+            startable[order].sort(key=lambda x: x['delay'])
+            for single in startable[order]:
+                #print single
+                #print "delay:" + str(incr_delay)
+                t = threading.Thread(target=VMLaunchworker.worker, args=(VMLaunchworker(), incr_delay, self, single['domain']))
+                threads.append(t)
+                incr_delay = incr_delay + single['delay']
+                t.start()
+
+            #for single in startable:
+
+
+#threads = []
+
+                #t = threading.Thread(target=VMLaunchworker.worker, args=(VMLaunchworker(), single[''], self, vm_instance_name))
+                #threads.append(t)
+                #t.start()
+
 
 class VMLabException(Exception):
     def __init__(self, vme_id=None, msg=None):
         super(VMLabException, self).__init__()
         self.vme_id = vme_id
         self.msg = msg
+
+
+class VMLaunchworker(object):
+    def worker(self, time_wait, vmcatalog_callback, domain):
+        time.sleep(time_wait)
+        vmcatalog_callback.start_domain(domain)
+        return
+
