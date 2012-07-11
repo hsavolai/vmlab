@@ -301,31 +301,31 @@
                   </packing>
                 </child>
                 <child>
-                  <object class="GtkButton" id="startallbutton">
-                    <property name="label" translatable="yes">Start all project VMs</property>
-                    <property name="width_request">204</property>
+                  <object class="GtkButton" id="launchbutton">
+                    <property name="label" translatable="yes">Launch controls</property>
+                    <property name="width_request">214</property>
                     <property name="height_request">24</property>
                     <property name="visible">True</property>
                     <property name="can_focus">True</property>
                     <property name="receives_default">True</property>
                   </object>
                   <packing>
-                    <property name="x">21</property>
-                    <property name="y">77</property>
+                    <property name="x">20</property>
+                    <property name="y">63</property>
                   </packing>
                 </child>
                 <child>
                   <object class="GtkButton" id="stopallbutton">
-                    <property name="label" translatable="yes">Stop all project VMs</property>
-                    <property name="width_request">202</property>
-                    <property name="height_request">23</property>
+                    <property name="label" translatable="yes">Stop running at once</property>
+                    <property name="width_request">213</property>
+                    <property name="height_request">25</property>
                     <property name="visible">True</property>
                     <property name="can_focus">True</property>
                     <property name="receives_default">True</property>
                   </object>
                   <packing>
-                    <property name="x">21</property>
-                    <property name="y">111</property>
+                    <property name="x">23</property>
+                    <property name="y">125</property>
                   </packing>
                 </child>
                 <child>
@@ -373,6 +373,20 @@
                     <property name="y">250</property>
                   </packing>
                 </child>
+                <child>
+                  <object class="GtkButton" id="stoprelatedbutton">
+                    <property name="label" translatable="yes">Stop related at once</property>
+                    <property name="width_request">213</property>
+                    <property name="height_request">23</property>
+                    <property name="visible">True</property>
+                    <property name="can_focus">True</property>
+                    <property name="receives_default">True</property>
+                  </object>
+                  <packing>
+                    <property name="x">24</property>
+                    <property name="y">100</property>
+                  </packing>
+                </child>
               </object>
               <packing>
                 <property name="position">0</property>
@@ -387,7 +401,7 @@
           </packing>
         </child>
         <child>
-          <object class="GtkStatusbar" id="statusbar5">
+          <object class="GtkStatusbar" id="statusbar">
             <property name="visible">True</property>
             <property name="spacing">2</property>
           </object>

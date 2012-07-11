@@ -23,7 +23,7 @@ Created on May 20, 2012
 @license: GPLv3
 '''
 import virtlab.constant as c
-from virtlab.virtual import VMMetadata
+from virtlab.vm import VMMetadata
 from configobj import ConfigObj
 
 
@@ -37,12 +37,12 @@ class ProjectDao(object):
         config = ConfigObj(pfile)
         project = Project()
         project.set_project_file(pfile)
-        project.set_project_name(config['Project']['name'])
-        for vm_name in config['VMInstaces']:
+        project.set_project_name(config[c.CONFIGFILE_KEY_PROJECT][c.CONFIGFILE_PROJECT_NAME])
+        for vm_name in config[c.CONFIGFILE_KEY_INSTANCES]:
             metadata = VMMetadata()
-            metadata.set_delay(float(config['VMInstaces'][vm_name]['delay']))
-            metadata.set_desc(config['VMInstaces'][vm_name]['desc'])
-            metadata.set_order(int(config['VMInstaces'][vm_name]['order']))
+            metadata.set_delay(float(config[c.CONFIGFILE_KEY_INSTANCES][vm_name][c.CONFIGFILE_VM_DELAY]))
+            metadata.set_desc(config[c.CONFIGFILE_KEY_INSTANCES][vm_name][c.CONFIGFILE_VM_DESC])
+            metadata.set_order(int(config[c.CONFIGFILE_KEY_INSTANCES][vm_name][c.CONFIGFILE_VM_ORDER]))
             vms_metadata[vm_name] = metadata
         project.set_metadata(vms_metadata)
         return project
@@ -53,19 +53,20 @@ class ProjectDao(object):
         assert(isinstance(project, Project))
         config = ConfigObj()
         config.filename = pfile
-        config['Project'] = {}
-        config['Project']['name'] = project.get_project_name()
+        config[c.CONFIGFILE_KEY_PROJECT] = {}
+        config[c.CONFIGFILE_KEY_PROJECT][c.CONFIGFILE_PROJECT_NAME] = project.get_project_name()
 
-        config['VMInstaces'] = {}
+        config[c.CONFIGFILE_KEY_INSTANCES] = {}
         for vm_name in project.get_metadata():
             vm_meta = project.get_metadata()[vm_name]
-            config['VMInstaces'][vm_name] = {}
-            config['VMInstaces'][vm_name]['desc'] = vm_meta.get_desc()
-            config['VMInstaces'][vm_name]['delay'] = vm_meta.get_delay()
-            config['VMInstaces'][vm_name]['order'] = vm_meta.get_order()
+            config[c.CONFIGFILE_KEY_INSTANCES][vm_name] = {}
+            config[c.CONFIGFILE_KEY_INSTANCES][vm_name][c.CONFIGFILE_VM_DESC] = vm_meta.get_desc()
+            config[c.CONFIGFILE_KEY_INSTANCES][vm_name][c.CONFIGFILE_VM_DELAY] = vm_meta.get_delay()
+            config[c.CONFIGFILE_KEY_INSTANCES][vm_name][c.CONFIGFILE_VM_ORDER] = vm_meta.get_order()
 
         config.write()
         project.set_project_file(pfile)
+
 
 class Project(object):
 

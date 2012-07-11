@@ -22,305 +22,172 @@ Created on May 20, 2012
 @author: hsavolai, epelo
 @license: GPLv3
 '''
-import libvirt
-from copy import copy
-import virtlab.constant as c
-import threading
+#import threading
 import time
-
-class VMState(object):
-
-    def __init__(self, state_id, state_str):
-        self.__state_id = state_id
-        self.__state_str = state_str
-
-    def get_state_id(self):
-        return self.__state_id
-
-    def get_state_str(self):
-        return self.__state_str
-
-
-class VMStateRunning(VMState):
-
-    def __init__(self):
-        super(VMStateRunning, self).__init__(1, c.STATE_RUNNING)
-
-
-class VMStateStopped(VMState):
-
-    def __init__(self):
-        super(VMStateStopped, self).__init__(2, c.STATE_STOPPED)
-
-
-class VMStateGone(VMState):
-
-    def __init__(self):
-        super(VMStateGone, self).__init__(3, c.STATE_GONE)
-
-
-class VMInstance(object):
-
-    def __init__(self, metadataref, name, state):
-        self.__name = name
-        self.__state = state
-        self.__metadataref = metadataref
-
-    def get_desc(self):
-        return self.__metadataref.get_desc()
-
-    def set_desc(self, value):
-        self.__metadataref.set_desc(value)
-
-    def set_order(self, value):
-        self.__metadataref.set_order(value)
-
-    def get_order(self):
-        return self.__metadataref.get_order()
-
-    def set_delay(self, value):
-        self.__metadataref.set_delay(value)
-
-    def get_delay(self):
-        return self.__metadataref.get_delay()
-
-    def get_name(self):
-        return self.__name
-
-    def get_state(self):
-        return self.__state
-
-    def set_name(self, value):
-        self.__name = value
-
-    def set_state(self, value):
-        self.__state = value
-
-    name = property(get_name, set_name, "Virtual machine name")
-    state = property(get_state, set_state, "Virtual machine state")
-    order = property(get_order, set_order, "Virtual machine order")
-    desc = property(get_desc, set_desc, "Virtual machine description")
-
-
-class VMMetadata(object):
-
-    def __init__(self):
-        self.__order = 0
-        self.__desc = ""
-        self.__delay = 0.0
-
-    def get_delay(self):
-        return self.__delay
-
-    def set_delay(self, value):
-        self.__delay = value
-
-    def get_desc(self):
-        return self.__desc
-
-    def set_desc(self, value):
-        self.__desc = value
-
-    def set_order(self, order):
-        self.__order = order
-
-    def get_order(self):
-        return self.__order
-
-    order = property(get_order, set_order, "Virtual machine order")
-    desc = property(get_desc, set_desc, "Virtual machine description")
-    delay = property(get_delay, set_delay, None, None)
-
-
-class LibVirtDao():
-
-    hook = "qemu:///system"
-
-    def __init__(self):
-        pass
-
-    @staticmethod
-    def get_libvirt(hook=None):
-        if hook is None:
-            return libvirt.open(LibVirtDao.hook)
-        else:
-            return libvirt.open(hook)
+import threading
+from vm import LibVirtDao, VMInstance
+from virtlab.project import Project
+from virtlab.vm import VMMetadata, VMState
 
 
 class VMCatalog(object):
 
     def __init__(self):
-        self.__vms = {}
-        self.__vms_history = {}
-        self.__vms_metadata = {}
-        self.__project = None
-
-    def __empty(self):
-        self.__vms.clear()
-
-    @classmethod
-    def get_conn(cls):
-        try:
-            return LibVirtDao.get_libvirt()
-        except Exception:
-            raise VMLabException(c.EXCEPTION_LIBVIRT_001, \
-                                 c.EXCEPTION_LIBVIRT_001_DESC)
-
-    def start_vms_once(self):
-        for vm_instance_name in self.__vms:
-            vm_instance = self.__vms[vm_instance_name]
-            assert(isinstance(vm_instance, VMInstance))
-            if vm_instance.get_order() > 0 or len(vm_instance.get_desc()) > 0:
-                self.start_domain(vm_instance_name)
-
-    def stop_vms_once(self):
-        for vm_instance_name in self.__vms:
-            time.sleep(1)
-            vm_instance = self.__vms[vm_instance_name]
-            assert(isinstance(vm_instance, VMInstance))
-            if vm_instance.get_order() > 0 or len(vm_instance.get_desc()) > 0:
-                self.stop_domain(vm_instance.get_name())
-
-    def start_domain(self, vm_instance_name):
-        conn = self.get_conn()
-        domain = conn.lookupByName(vm_instance_name)
-        if domain.isActive() == 0:
-            domain.create()
-
-    def stop_domain(self, vm_instance_name):
-        conn = self.get_conn()
-        domain = conn.lookupByName(vm_instance_name)
-        if domain.isActive() == 1:
-            domain.destroy()
+        self.__view = None
+        self.__vms = []
+        self.__project = Project()
+        self.libvirtdao = LibVirtDao()
+        self.__reload_flag = False
+        self.__threads = []
+        #Initialize catalog state
+        self.refresh_vms_list()
 
     def get_project(self):
         return self.__project
 
-    def __stopped(self, conn):
-        for name in conn.listDefinedDomains():
-            if not name in self.__vms_metadata:
-                self.__vms_metadata[name] = VMMetadata()
-            self.__vms[name] = VMInstance(self.__vms_metadata[name], \
-                                          name, VMStateStopped())
+    def inject_project(self, value):
+        self.__project = value
+        for vm_instance_name in self.__project.get_metadata():
+            self.set_vms_metadata(self.__project.get_metadata()[vm_instance_name], vm_instance_name)
 
-    def __running(self, conn):
-        for vm_id in conn.listDomainsID():
-            domain = conn.lookupByID(vm_id)
-            name = domain.name()
-            if not name in self.__vms_metadata:
-                self.__vms_metadata[name] = VMMetadata()
-            self.__vms[name] = VMInstance(self.__vms_metadata[name], \
-                                          name, VMStateRunning())
+    def notify_change(self):
+        self.__reload_flag = True
 
-    def __gone(self):
-        gone = set(self.__vms).symmetric_difference(set(self.__vms_metadata))
-        for name in gone:
-            self.__vms[name] = VMInstance(self.__vms_metadata[name], \
-                                          name, VMStateGone())
+    def reset_change_notify(self):
+        self.__reload_flag = False
 
-    def get_vm(self, name):
-        if name in self.__vms:
-            return self.__vms[name]
-        else:
-            return None
+#    def empty(self):
+#        del self.__vms[:]
+
+    def start_all_related_vms_once(self):
+        self.scheduled_vm_launcher(True)
+
+    def stop_all_related_vms_once(self):
+        delay = 0
+        for vm_instance in self.__vms:
+            if vm_instance.has_defined_role():
+                t = threading.Timer(delay, VMLaunchworker.stop_worker, args=(VMLaunchworker(), vm_instance),)
+                t.start()
+                delay += 2
+
+    def stop_all_vms_once(self):
+        delay = 0
+        for vm_instance in self.__vms:
+            t = threading.Timer(delay, VMLaunchworker.stop_worker, args=(VMLaunchworker(), vm_instance),)
+            t.start()
+            delay += 2
+
+    def get_vm(self, name_or_instance):
+        return self.__vms[self.__vms.index(name_or_instance)]
 
     def get_vms(self):
-        return self.__vms.values()
+        return self.__vms
 
-    def get_metadata_handle(self, vm_name):
-        return self.__vms_metadata[vm_name]
-
-    def __set_vms_metadata(self, value):
-        self.__vms_metadata = value
+    def set_vms_metadata(self, metadata, vm_instance_name):
+        if vm_instance_name in self.__vms:
+            self.get_vm(vm_instance_name).set_metadataref(metadata)
+        else:
+            self.catalog(vm_instance_name)
+            self.get_vm(vm_instance_name).set_metadataref(metadata)
 
     def get_vms_metadata(self):
-        return self.__vms_metadata
+        metadata = {}
+        for vm_instance in self.__vms:
+            metadata[vm_instance.get_name()] = vm_instance.get_metadataref()
+        return metadata
 
-    def refesh(self):
+    def refresh_vms_list(self):
+        '''
+        Refresh state of the vm_list
+        Returns False if no status change from hypervisor
+        Returns True if status change is occured
+        '''
+        domains = self.libvirtdao.get_domain_list()
 
-        self.__empty()
-        conn = self.get_conn()
-        self.__running(conn)
-        self.__stopped(conn)
-        self.__gone()
+        for vm_instance_name in domains:
+            if vm_instance_name not in self.__vms:
+                self.catalog(vm_instance_name)
 
-        changed = False
-        for historical_vm_instance_name in self.__vms_history:
-            if not historical_vm_instance_name in self.__vms:
-                changed = True
+        self.request_state_reload()
 
-        for vm_instance_name in self.__vms:
-            vm_instance = self.__vms[vm_instance_name]
-            if not vm_instance_name in self.__vms_history:
-                changed = True
-                break
-            if not vm_instance_name in self.__vms_history:
-                changed = True
-                break
-            vm_historical_instance = self.__vms_history[vm_instance_name]
-            if vm_instance.state.get_state_id() != \
-                            vm_historical_instance.state.get_state_id():
-                changed = True
-                break
+        return self.__reload_flag
 
-        if changed == True:
-            self.__vms_history = copy(self.__vms)
-            return True
-        else:
-            return False
+    def catalog(self, vm_instance_name):
+        vm_instance = self.libvirtdao.vm_build(vm_instance_name)
+        vm_instance.set_metadataref(VMMetadata())
+        vm_instance.set_vmcatalogref(self)
+        self.__vms.append(vm_instance)
 
-    vms = property(get_vms, None, None, None)
+    def request_state_reload(self):
+        for vm_istance in self.__vms:
+            vm_istance.query_state()
 
-    def set_project(self, value):
-        self.__project = value
-        self.__set_vms_metadata(self.__project.get_metadata())
+    def set_view(self, view):
+        if self.__view:
+            msg = "This model already has a view: %s"
+            raise AssertionError(msg % self.__view)
+        self.__view = view
 
-    def scheduled_vm_launcher(self):
+    def get_view(self):
+        return self.__view
 
-        startable = {}
+    def scheduled_vm_launcher(self, zero_delay=False):
+        # Do not start launch if launch is already running.
+        if len(self.__threads) is 0:
+            startable = []
 
-        for vm_instance_name in self.__vms:
-            vm_instance = self.__vms[vm_instance_name]
-            if vm_instance.get_order() > 0 or len(vm_instance.get_desc()) > 0:
-                single = {}
-                single["domain"] = vm_instance_name
-                single["delay"] = vm_instance.get_delay() * 60
-                if vm_instance.get_order() not in startable:
-                    startable[vm_instance.get_order()] = []
-                startable[vm_instance.get_order()].append(single)
+            # Which instances should be started
+            for vm_instance in self.__vms:
+                if vm_instance.get_state() is VMState.Stopped and vm_instance.has_defined_role():
+                    startable.append(vm_instance)
 
-        threads = []
-        incr_delay = 0
-        for order in startable:
-            startable[order].sort(key=lambda x: x['delay'])
-            for single in startable[order]:
-                #print single
-                #print "delay:" + str(incr_delay)
-                t = threading.Thread(target=VMLaunchworker.worker, args=(VMLaunchworker(), incr_delay, self, single['domain']))
-                threads.append(t)
-                incr_delay = incr_delay + single['delay']
+            # Sort according to order
+            startable.sort(cmp=None, key=lambda x: x.get_order(), reverse=False)
+            # Sort according to start delay if same order
+            startable.sort(lambda x, y: x.get_order() == y.get_order() and x.get_delay() < y.get_delay(), reverse=False)
+
+            incr_delay = 0
+            for vm_instance in startable:
+                if incr_delay > 0:
+                    self.__view.add_status_dialogbox(vm_instance.get_name() + " starts in " + str(incr_delay * 60) + " seconds.")
+                if vm_instance is startable[-1]:
+                    t = threading.Timer(incr_delay * 60, VMLaunchworker.start_worker, args=(VMLaunchworker(), self, vm_instance, True),)
+                else:
+                    t = threading.Timer(incr_delay * 60, VMLaunchworker.start_worker, args=(VMLaunchworker(), self, vm_instance, False),)
+                if not zero_delay:
+                    incr_delay = incr_delay + vm_instance.get_delay()
                 t.start()
+                self.__threads.append(t)
 
-            #for single in startable:
-
-
-#threads = []
-
-                #t = threading.Thread(target=VMLaunchworker.worker, args=(VMLaunchworker(), single[''], self, vm_instance_name))
-                #threads.append(t)
-                #t.start()
+            if len(startable) is 0:
+                self.__view.set_statusbar("Nothing to launch.")
 
 
-class VMLabException(Exception):
-    def __init__(self, vme_id=None, msg=None):
-        super(VMLabException, self).__init__()
-        self.vme_id = vme_id
-        self.msg = msg
+    def cancel_vm_launch(self):
+        if len(self.__threads) > 0:
+            for thread in self.__threads:
+                thread.cancel()
+            self.__view.add_status_dialogbox("Launch terminated.")
+            self.__view.set_statusbar("Launch terminated.")
+            self.clear_vm_launch()
+
+    def clear_vm_launch(self):
+        del self.__threads[:]
 
 
 class VMLaunchworker(object):
-    def worker(self, time_wait, vmcatalog_callback, domain):
-        time.sleep(time_wait)
-        vmcatalog_callback.start_domain(domain)
+    def start_worker(self, model, vm_instance, last=False):
+        model.get_view().add_status_dialogbox(vm_instance.get_name() + " started.")
+        vm_instance.start()
+        if last:
+            model.get_view().set_statusbar("Launch completed.")
+            model.get_view().add_status_dialogbox("Launch completed.")
+            model.clear_vm_launch()
+        else:
+            model.get_view().set_statusbar("Launch in progress.")
+        return
+
+    def stop_worker(self, vm_instance):
+        vm_instance.stop()
         return
 

@@ -28,12 +28,15 @@ from kiwi.python import Settable
 from kiwi.ui.objectlist import Column, ObjectList
 from kiwi.ui.dialogs import error
 # pylint: disable=E0611
-from virtlab.virtual import VMCatalog, VMLabException
+from virtlab.virtual import VMCatalog
 import gtk
 import gobject
 import sys
+from time import strftime, localtime
 import virtlab.constant as c
 from virtlab.project import Project, ProjectDao
+from virtlab.auxiliary import VMLabException
+from gtk import TRUE
 
 
 class VirtLabControl(BaseController):
@@ -50,8 +53,13 @@ class VirtLabControl(BaseController):
         '''
         Callback for timer of refreshing list of VMs
         '''
-        self.view.populate_vmlist()
+        self.reload_view_vmlist()
         return True
+
+    def reload_view_vmlist(self, force_view_reload=False):
+        if self.model.refresh_vms_list() or force_view_reload:
+            self.model.reset_change_notify()
+            self.view.populate_vmlist()
 
     # pylint: disable=W0613
     def on_vmlist_widget__selection_changed(self, vmlist_widget_allrows,
@@ -82,7 +90,7 @@ class VirtLabControl(BaseController):
         else:
             self.model.get_vm(vm_name).set_order(0)
         self.clear_vm_edit()
-        self.view.populate_vmlist(True)
+        self.reload_view_vmlist(True)
 
     def on_cancelbutton__clicked(self, *args):
         self.clear_vm_edit()
@@ -97,7 +105,7 @@ class VirtLabControl(BaseController):
         project = Project()
         self.model.set_vms_metadata(project.get_metadata())
         self.clear_vm_edit()
-        self.view.populate_vmlist(True)
+        self.reload_view_vmlist(True)
         self.view.projectname.set_text("")
 
     def on_openmenuitem__activate(self, *args):
@@ -111,9 +119,9 @@ class VirtLabControl(BaseController):
             # TODO FILE ERROR
             project = Project()
 
-        self.model.set_project(project)
+        self.model.inject_project(project)
         self.view.projectname.set_text(project.get_project_name())
-        self.view.populate_vmlist(True)
+        self.reload_view_vmlist(True)
         self.view.change_title(project.get_project_file())
 
     def on_saveasmenuitem__activate(self, *args):
@@ -160,13 +168,23 @@ class VirtLabControl(BaseController):
     def on_quitmenuitem__activate(self, *args):
         sys.exit(0)
 
-    def on_startallbutton__clicked(self, *args):
-        #self.model.start_vms_once()
-        self.model.scheduled_vm_launcher()
+    def on_launchbutton__clicked(self, *args):
+        self.view.show_dialog()
 
     def on_stopallbutton__clicked(self, *args):
-        self.model.stop_vms_once()
+        self.model.stop_all_vms_once()
 
+    def on_stoprelatedbutton__clicked(self, *args):
+        self.model.stop_all_related_vms_once()
+
+    def hook_dialog_terminate_clicked(self, *args):
+        self.model.cancel_vm_launch()
+
+    def hook_dialog_start_clicked(self, *args):
+        self.model.scheduled_vm_launcher()
+
+    def hook_dialog_all_start_clicked(self, *args):
+        self.model.start_all_related_vms_once()
 
 # pylint: disable=R0904
 class VirtLabView(BaseView):
@@ -176,7 +194,8 @@ class VirtLabView(BaseView):
 
     def __init__(self, model):
 
-        self.__vm_list = model
+        self.__model = model
+        #self.__model.set_view(self)
 
         BaseView.__init__(self,
                                gladefile="virtlab",
@@ -200,9 +219,12 @@ class VirtLabView(BaseView):
 
         self.vmlist_widget.show()
 
+        self.__dialog = None
+        self.__status_text = gtk.TextBuffer()
+
         try:
             self.populate_vmlist()
-            self.populate_order_dropdown(store, len(self.__vm_list.get_vms()))
+            self.populate_order_dropdown(store, len(self.__model.get_vms()))
         except VMLabException as exception:
             if exception.vme_id is c.EXCEPTION_LIBVIRT_001:
                 error("Initialization error",
@@ -217,6 +239,8 @@ class VirtLabView(BaseView):
         self.virtlab.set_size_request(800, 460)
 
         self.change_title("")
+        self.__statusbar_ctx = self.statusbar.get_context_id("virtlab")
+
 
     def __delaystring(self, delay):
         if delay > 0:
@@ -229,7 +253,6 @@ class VirtLabView(BaseView):
             self.virtlab.set_title(c.WINDOW_TITLE)
         else:
             self.virtlab.set_title(c.WINDOW_TITLE + "(" + value + ")")
-
 
     def dialog_filechooser_open(self):
         chooser = gtk.FileChooserDialog(title="Open Labset Project", action=gtk.FILE_CHOOSER_ACTION_OPEN,
@@ -263,20 +286,19 @@ class VirtLabView(BaseView):
             chooser.destroy()
             return
 
-    def populate_vmlist(self, force_reload=False):
+    def populate_vmlist(self):
         '''
-        Populates vmlist with current status
+        Populates view with current status
         '''
-        if self.__vm_list.refesh() == True or force_reload == True:
-            self.vmlist_widget.clear()
+        self.vmlist_widget.clear()
 
-            for vmachine in self.__vm_list.get_vms():
-                self.vmlist_widget.append(Settable(name=vmachine.get_name(),
-                                state=vmachine.get_state().get_state_str(),
-                                order=self.get_display_order(vmachine.get_order()) + self.__delaystring(vmachine.get_delay()),
-                                ordinal=vmachine.get_order(),
-                                delay=vmachine.get_delay(),
-                                desc=vmachine.get_desc()))
+        for vm_instance in self.__model.get_vms():
+            self.vmlist_widget.append(Settable(name=vm_instance.get_name(),
+                            state=vm_instance.get_state().get_state_str(),
+                            order=self.get_display_order(vm_instance.get_order()) + self.__delaystring(vm_instance.get_delay()),
+                            ordinal=vm_instance.get_order(),
+                            delay=vm_instance.get_delay(),
+                            desc=vm_instance.get_desc()))
 
     def populate_order_dropdown(self, list_store, vm_count):
         list_store.clear()
@@ -284,6 +306,57 @@ class VirtLabView(BaseView):
         if vm_count > 0:
             for num in range(1, vm_count + 1):
                 list_store.append([self.get_display_order(num)])
+
+    def add_status_dialogbox(self, text):
+        field_content = self.__status_text.get_text(self.__status_text.get_start_iter(), self.__status_text.get_end_iter(), False)
+        field_content += strftime("%d %b %Y %H:%M:%S", localtime()) + " " + text + "\n"
+        self.__status_text.set_text(field_content)
+
+    def clear_dialog_log(self):
+        self.__status_text.set_text("")
+
+    def show_dialog(self):
+        self.__dialog = gtk.Dialog(title="Launch status", parent=self.virtlab, flags=gtk.DIALOG_MODAL, buttons=None)
+        self.__dialog.set_position(gtk.WIN_POS_CENTER_ON_PARENT)
+        self.__dialog.set_transient_for(self.virtlab)
+        close_button = gtk.Button("Close window")
+        terminate_button = gtk.Button("Terminate")
+        clear_button = gtk.Button("Clear log")
+        start_button = gtk.Button("Launch scheduled")
+        start_once_button = gtk.Button("Launch all once")
+        close_button.connect("clicked", lambda d, r: r.destroy(), self.__dialog)
+        clear_button.connect("clicked", lambda d, r: r.clear_dialog_log(), self)
+        terminate_button.connect("clicked", self.controller.hook_dialog_terminate_clicked, None)
+        start_button.connect("clicked", self.controller.hook_dialog_start_clicked, None)
+        start_once_button.connect("clicked", self.controller.hook_dialog_all_start_clicked, None)
+        scrolled_window = gtk.ScrolledWindow(hadjustment=None, vadjustment=None)
+        scrolled_window.set_policy(gtk.POLICY_NEVER, gtk.POLICY_ALWAYS)
+        text_view = gtk.TextView()
+        scrolled_window.add_with_viewport(text_view)
+        scrolled_window.show()
+        text_view.set_buffer(self.__status_text)
+        # pylint: disable=E1101
+        self.__dialog.action_area.pack_start(start_button, True, True, 0)
+        self.__dialog.action_area.pack_start(start_once_button, True, True, 0)
+        self.__dialog.action_area.pack_start(clear_button, True, True, 0)
+        self.__dialog.action_area.pack_start(terminate_button, True, True, 0)
+        self.__dialog.action_area.pack_start(close_button, True, True, 0)
+        self.__dialog.vbox.pack_start(scrolled_window, True, True, 0)
+        scrolled_window.set_size_request(500, 200)
+        start_button.show()
+        start_once_button.show()
+        terminate_button.show()
+        close_button.show()
+        clear_button.show()
+        text_view.show()
+        self.__dialog.show()
+        text_view.set_editable(False)
+        text_view.set_cursor_visible(False)
+
+    def set_statusbar(self, value):
+        #self.statusbar.remove_all(self.__statusbar_ctx)
+        self.statusbar.pop(self.__statusbar_ctx)
+        self.statusbar.push(self.__statusbar_ctx, value)
 
     @staticmethod
     def get_display_order(number):
@@ -314,12 +387,11 @@ class VirtLabView(BaseView):
 # pylint: disable=W0613
 def main(argv=None):
 
-    MODEL = VMCatalog()
-    PROJECT = Project()
-    MODEL.set_project(PROJECT)
-    VIEW = VirtLabView(MODEL)
-    VirtLabControl(VIEW, MODEL)
-    VIEW.show()
+    model = VMCatalog()
+    view = VirtLabView(model)
+    VirtLabControl(view, model)
+    model.set_view(view)
+    view.show()
     gtk.main()
 
 if __name__ == "__main__":
