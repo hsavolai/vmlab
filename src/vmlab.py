@@ -37,7 +37,8 @@ import virtlab.constant as c
 from virtlab.project import Project, ProjectDao
 from virtlab.auxiliary import VMLabException
 from gtk import TRUE
-
+import os
+import virtlab
 
 class VirtLabControl(BaseController):
     '''
@@ -102,9 +103,7 @@ class VirtLabControl(BaseController):
         self.view.ordercombo.set_active(0)
 
     def on_newmenuitem__activate(self, *args):
-        project = Project()
-        self.model.set_vms_metadata(project.get_metadata())
-        self.clear_vm_edit()
+        self.model.reset()
         self.reload_view_vmlist(True)
         self.view.projectname.set_text("")
 
@@ -167,6 +166,9 @@ class VirtLabControl(BaseController):
 
     def on_quitmenuitem__activate(self, *args):
         sys.exit(0)
+
+    def on_aboutmenuitem__activate(self, *args):
+        self.view.show_about()
 
     def on_launchbutton__clicked(self, *args):
         self.view.show_dialog()
@@ -352,6 +354,22 @@ class VirtLabView(BaseView):
         self.__dialog.show()
         text_view.set_editable(False)
         text_view.set_cursor_visible(False)
+
+    def show_about(self):
+        about = gtk.AboutDialog()
+        about.set_program_name("Virtual Lab Manager")
+        about.set_version("1.0 RC")
+        import os
+        path = os.path.dirname(virtlab.__file__)
+        f = open(path + '/LICENCE', 'r')
+        about.set_license(f.read())
+        about.set_copyright("GPLv3, (c) Authors")
+
+        about.set_authors(["Harri Savolainen", "Esa Elo"])
+        about.set_comments("Virtual Machine lab tool")
+        about.set_website("https://github.com/hsavolai/vmlab")
+        about.run()
+        about.hide()
 
     def set_statusbar(self, value):
         #self.statusbar.remove_all(self.__statusbar_ctx)

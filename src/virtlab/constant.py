@@ -29,7 +29,7 @@ EXCEPTION_LIBVIRT_001_DESC = "Failed to connect libvirtd"
 STATE_RUNNING = "RUNNING"
 STATE_STOPPED = "STOPPED"
 STATE_GONE = "GONE"
-WINDOW_TITLE = "VM Lab Manager"
+WINDOW_TITLE = "Virtual Lab Manager"
 
 #Configuration file keys
 CONFIGFILE_KEY_PROJECT = "Project"

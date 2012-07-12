@@ -96,6 +96,11 @@ class VMCatalog(object):
             metadata[vm_instance.get_name()] = vm_instance.get_metadataref()
         return metadata
 
+    def reset(self):
+        del self.__vms[:]
+        self.__project.reset()
+        self.refresh_vms_list()
+
     def refresh_vms_list(self):
         '''
         Refresh state of the vm_list
