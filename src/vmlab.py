@@ -39,6 +39,7 @@ from virtlab.auxiliary import VMLabException
 from gtk import TRUE
 import os
 import virtlab
+from virtlab.vm import VMState
 
 class VirtLabControl(BaseController):
     '''
@@ -186,7 +187,18 @@ class VirtLabControl(BaseController):
         self.model.scheduled_vm_launcher()
 
     def hook_dialog_all_start_clicked(self, *args):
-        self.model.start_all_related_vms_once()
+        elf.model.start_all_related_vms_once()
+
+
+def populate_image(_state):
+    if _state is VMState.Running:
+        return gtk.gdk.pixbuf_new_from_file("pixmaps/computer-on.png")
+    else:
+        if _state is VMState.Stopped:
+            return gtk.gdk.pixbuf_new_from_file("pixmaps/computer-off.png")
+
+    return gtk.gdk.pixbuf_new_from_file("pixmaps/computer-gone.png")
+
 
 # pylint: disable=R0904
 class VirtLabView(BaseView):
@@ -203,7 +215,14 @@ class VirtLabView(BaseView):
                                gladefile="virtlab",
                                delete_handler=self.quit_if_last)
 
+  #      self.__col_pixbuf = gtk.TreeViewColumn("Image")
+  #      cellrenderer_pixbuf = gtk.CellRendererPixbuf()
+  #      cellrenderer_pixbuf.set_properties("pixbuf", )
+  #      self.__col_pixbuf.pack_start(cellrenderer_pixbuf, False)
+  #      self.__col_pixbuf.add_attribute(cellrenderer_pixbuf, "pixbuf", 1)
+
         tableColumns = [
+                    Column("image", title=" ", width=30, data_type=gtk.gdk.Pixbuf, sorted=False),
                     Column("name", title='VM Name', width=130, sorted=True),
                     Column("state", title='State', width=70),
                     Column("order", title='Order (Delay/min)', width=145),
@@ -211,6 +230,7 @@ class VirtLabView(BaseView):
                     Column("delay", visible=False),
                     Column("desc", title='Description', width=200)
                     ]
+
 
         self.vmlist_widget = ObjectList(tableColumns)
         self.vmlist_widget.set_size_request(300, 400)
@@ -242,7 +262,7 @@ class VirtLabView(BaseView):
 
         self.change_title("")
         self.__statusbar_ctx = self.statusbar.get_context_id("virtlab")
-
+        self.virtlab.set_icon(gtk.gdk.pixbuf_new_from_file("pixmaps/about-logo.png"))
 
     def __delaystring(self, delay):
         if delay > 0:
@@ -295,12 +315,13 @@ class VirtLabView(BaseView):
         self.vmlist_widget.clear()
 
         for vm_instance in self.__model.get_vms():
-            self.vmlist_widget.append(Settable(name=vm_instance.get_name(),
+            self.vmlist_widget.append(Settable(image=populate_image(vm_instance.get_state()), name=vm_instance.get_name(),
                             state=vm_instance.get_state().get_state_str(),
                             order=self.get_display_order(vm_instance.get_order()) + self.__delaystring(vm_instance.get_delay()),
                             ordinal=vm_instance.get_order(),
                             delay=vm_instance.get_delay(),
                             desc=vm_instance.get_desc()))
+
 
     def populate_order_dropdown(self, list_store, vm_count):
         list_store.clear()
@@ -364,7 +385,7 @@ class VirtLabView(BaseView):
         f = open(path + '/LICENCE', 'r')
         about.set_license(f.read())
         about.set_copyright("GPLv3, (c) Authors")
-
+        about.set_logo(gtk.gdk.pixbuf_new_from_file("pixmaps/about-logo.png"))
         about.set_authors(["Harri Savolainen", "Esa Elo"])
         about.set_comments("Virtual Machine lab tool")
         about.set_website("https://github.com/hsavolai/vmlab")
