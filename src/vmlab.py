@@ -26,7 +26,7 @@ from kiwi.controllers import BaseController
 from kiwi.ui.views import BaseView
 from kiwi.python import Settable
 from kiwi.ui.objectlist import Column, ObjectList
-from kiwi.ui.dialogs import error
+from kiwi.ui.dialogs import error, messagedialog
 # pylint: disable=E0611
 from virtlab.virtual import VMCatalog
 import gtk
@@ -115,8 +115,15 @@ class VirtLabControl(BaseController):
 
         try:
             project = ProjectDao.load_project(file_name)
+            self.view.set_statusbar("File open succesful.")
+
+        except IOError as e:
+            self.view.dialog_file_error("IO error({0}): {1}".format(e.errno, e.strerror))
+            self.view.set_statusbar("Error in file operation.")
+            project = Project()
         except:
-            # TODO FILE ERROR
+            self.view.dialog_file_error("Unknown error.")
+            self.view.set_statusbar("Error in file operation.")
             project = Project()
 
         self.model.inject_project(project)
@@ -130,29 +137,42 @@ class VirtLabControl(BaseController):
         if file_name is None:
             return
 
+        file_name = self.form_filename(file_name)
+
+        if self.file_overwrite_confirmation(file_name) is False:
+            self.view.set_statusbar("File operation cancelled.")
+            return
         try:
             project = self.model.get_project()
             project.set_project_name(self.view.projectname.get_text())
+            
             project.set_project_file(file_name)
+            
 
-            #try:
             project.set_metadata(self.model.get_vms_metadata())
             ProjectDao.save_project(project)
             self.view.change_title(project.get_project_file())
+            self.view.set_statusbar("File save succesful.")
+        except IOError as e:
+            self.view.dialog_file_error("IO error ({0}): {1}".format(e.errno, e.strerror))
+            self.view.set_statusbar("Error in file operation.")
         except:
-            pass
-            # TODO FILE ERROR
+            self.view.dialog_file_error("Unknown error.")
+            self.view.set_statusbar("Error in file operation.")
+            return
 
     def on_savemenuitem__activate(self, *args):
-
         project = self.model.get_project()
-
-        if project.get_project_file() is "" or None:
+        file_name = project.get_project_file()
+        if file_name is "" or None:
             file_name = self.view.dialog_filechooser_save()
             if file_name is None:
                 return
-        else:
-            file_name = project.get_project_file()
+            file_name = self.form_filename(file_name)
+            if self.file_overwrite_confirmation(file_name) is False:
+                self.view.set_statusbar("File operation cancelled.")
+                return
+
 
         project.set_project_name(self.view.projectname.get_text())
         project.set_project_file(file_name)
@@ -161,9 +181,14 @@ class VirtLabControl(BaseController):
             project.set_metadata(self.model.get_vms_metadata())
             ProjectDao.save_project(project)
             self.view.change_title(project.get_project_file())
+            self.view.set_statusbar("File save succesful.")
+        except IOError as e:
+            self.view.dialog_file_error("IO error {0}): {1}".format(e.errno, e.strerror))
+            self.view.set_statusbar("Error in file operation.")
         except:
-            pass
-        # TODO FILE ERROR
+            self.view.dialog_file_error("Unknown error.")
+            self.view.set_statusbar("Error in file operation.")
+            return
 
     def on_quitmenuitem__activate(self, *args):
         sys.exit(0)
@@ -187,7 +212,21 @@ class VirtLabControl(BaseController):
         self.model.scheduled_vm_launcher()
 
     def hook_dialog_all_start_clicked(self, *args):
-        elf.model.start_all_related_vms_once()
+        self.model.start_all_related_vms_once()
+
+    def form_filename(self, file_name):
+        if not file_name.endswith(c.SAVE_FILE_SUFFIX):
+            return file_name+c.SAVE_FILE_SUFFIX
+        return file_name
+
+    def file_overwrite_confirmation(self, file_name):
+         # File exitst
+         if os.path.isfile(file_name):
+            # Ask user what shoild be done
+            if self.view.dialog_overwrite() is False:
+                return False
+         return True
+
 
 
 def populate_image(_state):
@@ -277,9 +316,12 @@ class VirtLabView(BaseView):
             self.virtlab.set_title(c.WINDOW_TITLE + "(" + value + ")")
 
     def dialog_filechooser_open(self):
-        chooser = gtk.FileChooserDialog(title="Open Labset Project", action=gtk.FILE_CHOOSER_ACTION_OPEN,
+        chooser = gtk.FileChooserDialog(title="Open VMLab Project", action=gtk.FILE_CHOOSER_ACTION_OPEN,
                                   buttons=(gtk.STOCK_CANCEL, gtk.RESPONSE_CANCEL, gtk.STOCK_OPEN, gtk.RESPONSE_OK))
         chooser.set_default_response(gtk.RESPONSE_OK)
+        filter = gtk.FileFilter()
+        filter.add_pattern("*"+c.SAVE_FILE_SUFFIX)
+        chooser.set_filter(filter)
         file_name = ""
         response = chooser.run()
         if response == gtk.RESPONSE_OK:
@@ -291,10 +333,11 @@ class VirtLabView(BaseView):
             return
 
     def dialog_filechooser_save(self):
-        chooser = gtk.FileChooserDialog(title="Save Labset Project", action=gtk.FILE_CHOOSER_ACTION_SAVE,
+        chooser = gtk.FileChooserDialog(title="Save VMLab Project", action=gtk.FILE_CHOOSER_ACTION_SAVE,
                                   buttons=(gtk.STOCK_CANCEL, gtk.RESPONSE_CANCEL, gtk.STOCK_SAVE, gtk.RESPONSE_OK))
-
         chooser.set_default_response(gtk.RESPONSE_CANCEL)
+        filter = gtk.FileFilter()
+        filter.add_pattern("*"+c.SAVE_FILE_SUFFIX)
         file_name = ""
         response = chooser.run()
         if response == gtk.RESPONSE_OK:
@@ -391,6 +434,25 @@ class VirtLabView(BaseView):
         about.set_website("https://github.com/hsavolai/vmlab")
         about.run()
         about.hide()
+
+    def dialog_overwrite(self):
+        response = messagedialog(gtk.MESSAGE_QUESTION, 
+                    "File exists, overwrite?",
+                    None,
+                    self.toplevel,
+                    gtk.BUTTONS_OK_CANCEL
+                    )
+        if response == gtk.RESPONSE_OK:
+            return True
+        return False
+
+    def dialog_file_error(self, error_msg):
+        messagedialog(gtk.MESSAGE_ERROR, 
+                    "File operation failed!",
+                    error_msg,
+                    self.toplevel,
+                    gtk.BUTTONS_OK
+                    )
 
     def set_statusbar(self, value):
         #self.statusbar.remove_all(self.__statusbar_ctx)

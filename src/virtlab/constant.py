@@ -38,3 +38,6 @@ CONFIGFILE_KEY_INSTANCES = "VMInstances"
 CONFIGFILE_VM_DELAY = "delay"
 CONFIGFILE_VM_DESC = "desc"
 CONFIGFILE_VM_ORDER = "order"
+
+#File params 
+SAVE_FILE_SUFFIX=".lab"
